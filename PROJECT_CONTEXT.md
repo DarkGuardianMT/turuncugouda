@@ -51,8 +51,9 @@ Future reservation functionality: `/reserveren` (currently a placeholder route).
 
 Existing bakery/product promotional sections may be removed, merged, or redesigned;
 those decisions are not final. The homepage now includes structural versions of
-these sections with temporary content. `/galerij` and `/reserveren` exist as simple
-placeholder pages, without gallery or reservation functionality.
+these sections with real branding and photography alongside temporary business
+copy. `/galerij` now has an initial responsive photo grid; `/reserveren` remains
+a placeholder without reservation functionality.
 
 Current shared navigation: Menu → `/#menu`, Over ons → `/#over-ons`,
 Galerij → `/galerij`, Bezoek → `/#bezoek`, and Reserveer → `/reserveren`.
@@ -60,24 +61,47 @@ Galerij → `/galerij`, Bezoek → `/#bezoek`, and Reserveer → `/reserveren`.
 ## Design direction
 
 Largely preserve the existing brand identity, including its recognizable warm/orange
-character. Keep the existing logo; the text/tagline below it will change later.
-Logo assets and the final tagline are not yet supplied in this repository.
+character. The supplied real logo is integrated, with the current approved subtitle
+`Café • Bakkerij • Lunch` kept as editable HTML text.
 The visual foundation uses restrained orange, cream, warm white, and dark brown.
 CSS custom properties define palette, spacing, radii, container width, typography,
 and a subtle shadow. Dark orange is used for accessible CTA backgrounds and accent
 text; the brighter orange remains a decorative brand accent. System sans-serif
 body text and a system serif heading font provide warmth without font downloads.
-The text-based `Turuncu` brand placeholder is ready to be replaced by the real logo;
-no logo or tagline has been invented. Photography areas use lightweight CSS surfaces.
+The shared brand lockup uses a circular CSS crop to hide the supplied logo's large
+black margins without modifying the source image or cutting the logo. Its raster
+source is retained; a clean transparent export would simplify future presentation.
+The header uses its mobile disclosure below 1024px so the logo and subtitle fit
+comfortably alongside navigation at tablet sizes. The navigation destinations are unchanged.
 These are initial design decisions, not final owner-approved brand specifications.
 
 ## Data and content strategy
 
 Initially use local TypeScript/JSON-style files in `src/data/`. The current file
-contains only the supplied business name and development message. Public-facing
+contains the business name and approved subtitle. Public-facing
 content is primarily Dutch. Do not invent business facts, prices, opening hours,
 menu items, addresses, or claims; verify real content with the owner.
 No CMS is being added at this stage.
+
+### Photography and menu references
+
+Real supplied assets are kept under `src/assets/`. Local imports and Astro's
+`Image` component generate optimized responsive WebP images with Dutch alt text,
+explicit sizes and intrinsic dimensions. Only the primary hero photo is eager
+and high priority; other photos are lazy loaded. Generated widths are capped at
+source resolution. No external or generated photography is used.
+
+Main assignments: `borek-coffee.webp` for the contained 4:3 hero, `latte-art.webp`
+for Café, `ig-08.webp` for Bakkerij, `menemen.webp` for Lunch, and
+`counter-tulips.webp` for Over ons. Six different photos form the homepage preview;
+`src/data/gallery.ts` shares image metadata with a reusable `PhotoGrid` component
+and the full gallery. The gallery currently includes 13 distinct suitable photos.
+The letterboxed `ig-07.webp` is preserved but not displayed.
+
+Both menu PNGs remain source/reference material only. They are not rendered,
+OCR-processed, or converted into menu data. Items and prices must be verified
+before structured/final menu implementation. Gallery filters, lightbox, pagination,
+CMS, and reservation functionality remain deferred.
 
 ## Future reservation system
 
@@ -99,7 +123,7 @@ Future reservations will require a separate decision about server/runtime suppor
 - Vue integration, React, Tailwind, UI/component and animation libraries
 - Sanity or another CMS, Supabase, databases, backend/API services
 - Reservation implementation, endpoints, and email notifications
-- Final homepage design, gallery implementation, and real content migration
+- Final homepage/business copy, structured menu content, and gallery filters/lightbox
 
 ## Current implementation status
 
@@ -107,11 +131,13 @@ Future reservations will require a separate decision about server/runtime suppor
 - Existing README identity and Git history preserved; README expanded for developers.
 - `/` contains hero, menu/highlights, Over ons, gallery preview, optional extra-content
   space, Instagram placeholder, and visit/contact sections, followed by the shared footer.
-  The hero retains “Turuncu Café en Bakkerij” and “Nieuwe website in ontwikkeling.”
-  Real menu, address, hours, contact, social links, and imagery are not supplied yet.
-- `/galerij` and `/reserveren` share the layout and clearly state their unfinished status.
+  The hero uses “Turuncu Café en Bakkerij”, the approved brand subtitle, and a real
+  börek/coffee photograph, with “Bekijk de galerij” and “Bezoek ons” CTAs.
+  Real menu, address, hours, contact, social links, and business story remain unverified.
+- `/galerij` has a responsive photo grid with varied composition, a neutral Dutch
+  introduction, and the shared layout. `/reserveren` remains a clearly marked placeholder.
 - Reusable `src/layouts/BaseLayout.astro`, `SiteHeader`, `SiteFooter`, and `Section`
-  components, global CSS patterns, and local site/navigation data.
+  components, plus shared `Brand` and `PhotoGrid`, global CSS patterns, and local data.
 - Mobile-first layouts stack on small screens and use grids at wider widths.
   Shared navigation uses native JavaScript only for the mobile disclosure, with
   ARIA state, keyboard controls, Escape-to-close, link selection closure, and a
@@ -120,7 +146,7 @@ Future reservations will require a separate decision about server/runtime suppor
 - Strict TypeScript configuration and npm development, check, build, and preview scripts.
 - `public/` is available for future static assets and currently empty. Git does not
   track empty directories; create it when adding assets in a fresh clone.
-- `src/components/` now holds the shared header, footer, and section wrapper.
+- `src/assets/` contains the untouched supplied logo, photographs, and menu references.
 - Root `AGENTS.md` and this document provide persistent project guidance.
 - Build output, Astro generated types, dependencies, logs, and local environment
   files are ignored. No secrets or deployment credentials are included.
@@ -155,9 +181,20 @@ Future reservations will require a separate decision about server/runtime suppor
 - Real content, logo, imagery, gallery functionality, and reservation functionality
   remain for subsequent tasks.
 
+## Brand and photography checkpoint verification (8 October 2026)
+
+- Astro/type checks: zero errors, warnings, or hints; build produces three static pages.
+- Production browser checks at 320, 375, 768, 1024, and 1440px verify all routes,
+  loaded images, logo/subtitle, mobile keyboard navigation, and no horizontal overflow.
+- Mobile navigation also remains available without JavaScript.
+- Homepage and gallery screenshots reviewed for subject crops and logo presentation.
+- All 17 supplied source assets verified unchanged by SHA-256 comparison.
+- Menu reference images and the unused letterboxed photo are absent from the build.
+- No dependencies added; responsive outputs keep original source files intact.
+
 ## Near-term roadmap
 
-1. Confirm real business content, logo assets, revised tagline, and page priorities with the owner.
+1. Confirm real business content, menu details, and page priorities with the owner.
 2. Refine homepage sections, anchor navigation, and responsive design direction.
 3. Implement the approved homepage and gallery incrementally using local data.
 4. Confirm Hostinger capabilities and establish the GitHub deployment workflow.
@@ -167,7 +204,7 @@ Future reservations will require a separate decision about server/runtime suppor
 
 - Final homepage sections and the fate of existing promotional sections
 - Breakfast/high-tea scope and verified practical/menu information
-- Final tagline, design tokens, imagery, gallery organization and photo assets
+- Final design tokens, gallery organization, and any additional high-resolution photo assets
 - Hostinger plan, GitHub deployment integration, and future server capabilities
 - Reservation functionality, operations, data model, and notification requirements
 

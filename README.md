@@ -2,7 +2,8 @@
 
 The new website for Turuncu Café en Bakkerij in Gouda. This project is under
 active development; the homepage now has a responsive visual foundation with
-temporary Dutch content. Gallery and reservation routes are placeholders.
+real Turuncu branding and photography. The gallery has an initial photo grid;
+reservations and verified business content remain in development.
 
 ## Stack and prerequisites
 
@@ -37,7 +38,8 @@ server, not a production server.
 ## Structure
 
 - `src/pages/`: `/`, `/galerij`, and `/reserveren`
-- `src/components/`: shared header, footer, and section wrapper
+- `src/components/`: shared branding, header, footer, section wrapper, and photo grid
+- `src/assets/`: supplied logo, real photos, and menu reference images
 - `src/layouts/`: reusable document layout
 - `src/styles/`: global plain CSS and provisional design tokens
 - `src/data/`: local content separated from presentation

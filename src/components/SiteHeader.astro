@@ -1,10 +1,11 @@
 ---
 import { navigation } from '../data/navigation';
+import Brand from './Brand.astro';
 ---
 
 <header class="site-header">
   <div class="container header-inner">
-    <a class="brand" href="/" aria-label="Turuncu — naar de homepage">Turuncu<span aria-hidden="true">.</span></a>
+    <Brand />
     <button class="menu-toggle" type="button" aria-label="Menu openen" aria-expanded="false" aria-controls="site-navigation" hidden>
       <span class="menu-icon" aria-hidden="true"><span></span><span></span><span></span></span>
       <span>Menu</span>
@@ -24,7 +25,7 @@ import { navigation } from '../data/navigation';
   const nav = header?.querySelector<HTMLElement>('.site-navigation');
 
   if (header && toggle && nav) {
-    const mobile = window.matchMedia('(max-width: 47.99rem)');
+    const mobile = window.matchMedia('(max-width: 63.99rem)');
     const setOpen = (open: boolean) => {
       toggle.setAttribute('aria-expanded', String(open));
       nav.hidden = mobile.matches && !open;

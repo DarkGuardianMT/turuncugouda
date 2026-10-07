@@ -2,6 +2,9 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { site } from '../data/site';
 import Section from '../components/Section.astro';
+import { Image } from 'astro:assets';
+import PhotoGrid from '../components/PhotoGrid.astro';
+import { photos, highlights, galleryPreview } from '../data/gallery';
 ---
 
 <BaseLayout title={site.name}>
@@ -11,35 +14,47 @@ import Section from '../components/Section.astro';
         <div class="hero-copy">
           <p class="eyebrow">Turuncu · Gouda</p>
           <h1>Turuncu Café<br />en Bakkerij</h1>
-          <p class="hero-description">{site.placeholderMessage}</p>
+          <p class="hero-description">{site.subtitle}</p>
           <div class="button-group">
-            <a class="button button-primary" href="/reserveren">Reserveer</a>
-            <a class="button button-secondary" href="/#menu">Bekijk het menu <span aria-hidden="true">↗</span></a>
+            <a class="button button-primary" href="/galerij">Bekijk de galerij</a>
+            <a class="button button-secondary" href="/#bezoek">Bezoek ons <span aria-hidden="true">↗</span></a>
           </div>
         </div>
-        <div class="hero-visual photo-placeholder"><span>Nieuwe fotografie volgt</span></div>
+        <Image class="hero-visual" src={photos.hero.image} alt={photos.hero.alt}
+          width={700} widths={[320, 480, 700, 1050, 1400]}
+          sizes="(min-width: 1248px) 541px, (min-width: 768px) calc((100vw - 112px) / 2.1), calc(100vw - 48px)"
+          loading="eager" fetchpriority="high" />
       </div>
     </section>
 
-    <Section id="menu" title="Menu & highlights" eyebrow="Op het menu" tone="surface">
-      <div class="split-content">
-        <p class="intro">Hier komt straks het menu van Turuncu.</p>
-        <div class="content-panel"><p class="placeholder-label">Menu in voorbereiding</p><p>Het aanbod en de menukaart worden later toegevoegd.</p></div>
+    <Section id="menu" title="Café, bakkerij & lunch" eyebrow="Bij Turuncu" tone="surface">
+      <div class="highlights-grid">
+        {highlights.map(({ title, photo }) => (
+          <article class="highlight">
+            <Image src={photo.image} alt={photo.alt} width={Math.min(640, photo.image.width)}
+              widths={[320, 480, 640, 810].filter((width) => width <= photo.image.width)}
+              sizes="(min-width: 1248px) 379px, (min-width: 768px) calc((100vw - 112px) / 3), (min-width: 576px) calc((100vw - 96px) / 3), calc(100vw - 48px)"
+              loading="lazy" />
+            <h3>{title}</h3>
+          </article>
+        ))}
       </div>
+      <p class="menu-note">De menukaart wordt later toegevoegd.</p>
     </Section>
 
     <Section id="over-ons" title="Over ons" eyebrow="Turuncu">
       <div class="split-content">
-        <div class="about-visual photo-placeholder"><span>Foto volgt</span></div>
+        <Image class="about-visual" src={photos.atmosphere.image} alt={photos.atmosphere.alt}
+          width={720} widths={[320, 480, 720, 1080]}
+          sizes="(min-width: 1248px) 568px, (min-width: 768px) calc((100vw - 112px) / 2), calc(100vw - 48px)"
+          loading="lazy" />
         <p class="intro">Het verhaal van Turuncu krijgt hier binnenkort een plek.</p>
       </div>
     </Section>
 
     <Section title="Een kijkje bij Turuncu" eyebrow="Galerij" tone="surface">
-      <div class="section-toolbar"><p>Foto’s worden later toegevoegd.</p><a class="text-link" href="/galerij">Naar de galerij <span aria-hidden="true">↗</span></a></div>
-      <div class="gallery-grid" role="group" aria-label="Voorbeeldruimte voor toekomstige foto’s">
-        {[1, 2, 3].map(() => <div class="gallery-card photo-placeholder"><span>Foto volgt</span></div>)}
-      </div>
+      <div class="section-toolbar"><p>Een impressie van Turuncu Café en Bakkerij.</p><a class="text-link" href="/galerij">Bekijk de galerij <span aria-hidden="true">↗</span></a></div>
+      <PhotoGrid photos={galleryPreview} />
     </Section>
 
     <Section title="Nog meer bij Turuncu" eyebrow="Binnenkort">
