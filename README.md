@@ -1,7 +1,8 @@
 # turuncugouda
 
 The new website for Turuncu Café en Bakkerij in Gouda. This project is under
-active development; the current homepage is a minimal Dutch placeholder.
+active development; the homepage now has a responsive visual foundation with
+temporary Dutch content. Gallery and reservation routes are placeholders.
 
 ## Stack and prerequisites
 
@@ -35,13 +36,12 @@ server, not a production server.
 
 ## Structure
 
-- `src/pages/`: file-based routes; currently only `/`
+- `src/pages/`: `/`, `/galerij`, and `/reserveren`
+- `src/components/`: shared header, footer, and section wrapper
 - `src/layouts/`: reusable document layout
 - `src/styles/`: global plain CSS and provisional design tokens
 - `src/data/`: local content separated from presentation
 - `public/`: static assets copied without transformation (currently empty)
-
-Add `src/components/` when a reusable UI component is needed.
 
 Read [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) for scope and architecture decisions
 and [AGENTS.md](AGENTS.md) for engineering guidance. Dependency versions are locked

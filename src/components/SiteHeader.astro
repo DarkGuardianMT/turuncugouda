@@ -1,0 +1,60 @@
+---
+import { navigation } from '../data/navigation';
+---
+
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="brand" href="/" aria-label="Turuncu — naar de homepage">Turuncu<span aria-hidden="true">.</span></a>
+    <button class="menu-toggle" type="button" aria-label="Menu openen" aria-expanded="false" aria-controls="site-navigation" hidden>
+      <span class="menu-icon" aria-hidden="true"><span></span><span></span><span></span></span>
+      <span>Menu</span>
+    </button>
+    <nav id="site-navigation" class="site-navigation" aria-label="Hoofdnavigatie">
+      <ul>
+        {navigation.map(({ label, href }) => <li><a href={href}>{label}</a></li>)}
+        <li><a class="button button-primary" href="/reserveren">Reserveer</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<script>
+  const header = document.querySelector<HTMLElement>('.site-header');
+  const toggle = header?.querySelector<HTMLButtonElement>('.menu-toggle');
+  const nav = header?.querySelector<HTMLElement>('.site-navigation');
+
+  if (header && toggle && nav) {
+    const mobile = window.matchMedia('(max-width: 47.99rem)');
+    const setOpen = (open: boolean) => {
+      toggle.setAttribute('aria-expanded', String(open));
+      nav.hidden = mobile.matches && !open;
+      toggle.setAttribute('aria-label', open ? 'Menu sluiten' : 'Menu openen');
+    };
+    const syncViewport = () => {
+      const focusWasInNav = nav.contains(document.activeElement);
+      toggle.hidden = !mobile.matches;
+      setOpen(false);
+      if (mobile.matches && focusWasInNav) toggle.focus();
+      else if (!mobile.matches && document.activeElement === toggle) nav.querySelector('a')?.focus();
+    };
+
+    syncViewport();
+    mobile.addEventListener('change', syncViewport);
+    toggle.addEventListener('click', () => setOpen(toggle.getAttribute('aria-expanded') !== 'true'));
+    nav.addEventListener('click', (event) => {
+      if (event.target instanceof Element && event.target.closest('a') && mobile.matches) {
+        setOpen(false);
+        toggle.focus();
+      }
+    });
+    header.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && toggle.getAttribute('aria-expanded') === 'true') {
+        setOpen(false);
+        toggle.focus();
+      }
+    });
+    document.addEventListener('click', (event) => {
+      if (event.target instanceof Node && !header.contains(event.target)) setOpen(false);
+    });
+  }
+</script>

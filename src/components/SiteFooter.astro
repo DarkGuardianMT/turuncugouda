@@ -1,0 +1,14 @@
+---
+import { navigation } from '../data/navigation';
+import { site } from '../data/site';
+---
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <div><a class="brand" href="/">Turuncu<span aria-hidden="true">.</span></a><p>{site.name}</p></div>
+    <nav aria-label="Footernavigatie">
+      <ul>{navigation.map(({ label, href }) => <li><a href={href}>{label}</a></li>)}</ul>
+    </nav>
+    <p class="footer-note">Contact-, social- en bedrijfsgegevens volgen.</p>
+  </div>
+</footer>

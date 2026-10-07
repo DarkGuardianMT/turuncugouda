@@ -47,19 +47,29 @@ Homepage `/`:
 
 Separate page: `/galerij`.
 
-Future page: `/reserveren`.
+Future reservation functionality: `/reserveren` (currently a placeholder route).
 
 Existing bakery/product promotional sections may be removed, merged, or redesigned;
-those decisions are not final. None of these planned sections or routes beyond
-the homepage placeholder has been implemented.
+those decisions are not final. The homepage now includes structural versions of
+these sections with temporary content. `/galerij` and `/reserveren` exist as simple
+placeholder pages, without gallery or reservation functionality.
+
+Current shared navigation: Menu → `/#menu`, Over ons → `/#over-ons`,
+Galerij → `/galerij`, Bezoek → `/#bezoek`, and Reserveer → `/reserveren`.
 
 ## Design direction
 
 Largely preserve the existing brand identity, including its recognizable warm/orange
 character. Keep the existing logo; the text/tagline below it will change later.
 Logo assets and the final tagline are not yet supplied in this repository.
-The foundation uses a small set of provisional CSS variables and system fonts,
-not a final visual redesign or an approved brand palette.
+The visual foundation uses restrained orange, cream, warm white, and dark brown.
+CSS custom properties define palette, spacing, radii, container width, typography,
+and a subtle shadow. Dark orange is used for accessible CTA backgrounds and accent
+text; the brighter orange remains a decorative brand accent. System sans-serif
+body text and a system serif heading font provide warmth without font downloads.
+The text-based `Turuncu` brand placeholder is ready to be replaced by the real logo;
+no logo or tagline has been invented. Photography areas use lightweight CSS surfaces.
+These are initial design decisions, not final owner-approved brand specifications.
 
 ## Data and content strategy
 
@@ -95,18 +105,27 @@ Future reservations will require a separate decision about server/runtime suppor
 
 - Official minimal Astro starter incorporated in the existing repository root.
 - Existing README identity and Git history preserved; README expanded for developers.
-- Only `/` exists, displaying “Turuncu Café en Bakkerij” and
-  “Nieuwe website in ontwikkeling.” using semantic HTML and Dutch document language.
-- Reusable `src/layouts/BaseLayout.astro`, global stylesheet, and local content file.
+- `/` contains hero, menu/highlights, Over ons, gallery preview, optional extra-content
+  space, Instagram placeholder, and visit/contact sections, followed by the shared footer.
+  The hero retains “Turuncu Café en Bakkerij” and “Nieuwe website in ontwikkeling.”
+  Real menu, address, hours, contact, social links, and imagery are not supplied yet.
+- `/galerij` and `/reserveren` share the layout and clearly state their unfinished status.
+- Reusable `src/layouts/BaseLayout.astro`, `SiteHeader`, `SiteFooter`, and `Section`
+  components, global CSS patterns, and local site/navigation data.
+- Mobile-first layouts stack on small screens and use grids at wider widths.
+  Shared navigation uses native JavaScript only for the mobile disclosure, with
+  ARIA state, keyboard controls, Escape-to-close, link selection closure, and a
+  visible navigation fallback when JavaScript is disabled. A skip link and visible
+  focus styles are included.
 - Strict TypeScript configuration and npm development, check, build, and preview scripts.
 - `public/` is available for future static assets and currently empty. Git does not
   track empty directories; create it when adding assets in a fresh clone.
-- Add `src/components/` when the first reusable UI component is needed.
+- `src/components/` now holds the shared header, footer, and section wrapper.
 - Root `AGENTS.md` and this document provide persistent project guidance.
 - Build output, Astro generated types, dependencies, logs, and local environment
   files are ignored. No secrets or deployment credentials are included.
 
-### Installed versions and verification (7 October 2026)
+### Installed versions and initial setup verification (7 October 2026)
 
 - Astro `7.3.6` (current stable npm release at initialization)
 - TypeScript `6.0.3` (supported by the checker; TypeScript 7 is not yet supported)
@@ -121,6 +140,20 @@ Future reservations will require a separate decision about server/runtime suppor
 - Astro telemetry was disabled via the session environment during verification
   because the sandbox cannot write to the user-level Astro configuration folder.
   This does not change the project scripts or production output.
+
+## Visual foundation verification (7 October 2026)
+
+- Astro/type checks pass without errors, warnings, or hints; static build generates three pages.
+- Browser checks cover `/`, `/galerij`, and `/reserveren` at 320, 390, 768, and
+  1440 pixels: no horizontal overflow, one main landmark and one H1 per page.
+- Mobile keyboard toggle, Escape/focus return, anchor selection closure, viewport
+  changes, and navigation with JavaScript disabled are verified.
+- Final production preview passes the same responsive and interaction checks.
+  Homepage screenshots reviewed at mobile and desktop sizes, along with both
+  placeholder routes. No browser errors.
+- No dependencies, web fonts, heavy images, or framework integrations added.
+- Real content, logo, imagery, gallery functionality, and reservation functionality
+  remain for subsequent tasks.
 
 ## Near-term roadmap
 
