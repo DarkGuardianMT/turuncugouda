@@ -1,0 +1,11 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { site } from '../data/site';
+---
+
+<BaseLayout title={site.name}>
+  <main class="placeholder">
+    <h1>{site.name}</h1>
+    <p>{site.placeholderMessage}</p>
+  </main>
+</BaseLayout>

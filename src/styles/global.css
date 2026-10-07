@@ -1,0 +1,42 @@
+:root {
+  color-scheme: light;
+  --color-background: #fffaf5;
+  --color-text: #332820;
+  --color-accent: #a8440c;
+  --font-body: system-ui, sans-serif;
+  --space-small: 1rem;
+  --space-large: 2rem;
+  --content-width: 48rem;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  line-height: 1.6;
+}
+
+.placeholder {
+  max-width: var(--content-width);
+  margin-inline: auto;
+  padding: clamp(2rem, 8vw, 6rem) var(--space-large);
+}
+
+h1 {
+  margin: 0 0 var(--space-small);
+  color: var(--color-accent);
+  font-size: clamp(1.75rem, 5vw, 2.5rem);
+  line-height: 1.2;
+  overflow-wrap: break-word;
+}
+
+p {
+  margin: 0;
+}
