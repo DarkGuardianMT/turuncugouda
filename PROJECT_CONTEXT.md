@@ -65,6 +65,10 @@ Largely preserve the existing brand identity, including its recognizable warm/or
 character. The supplied real logo is integrated, with the current approved subtitle
 `Café • Bakkerij • Lunch` kept as editable HTML text.
 The visual foundation uses restrained orange, cream, warm white, and dark brown.
+Warm cream is the primary page background, with slightly lighter cream sections
+and a deeper warm footer surface for subtle hierarchy. White and near-white are
+reserved mainly for cards, image containers, and small UI surfaces. The established
+orange/brown Turuncu identity remains the basis.
 CSS custom properties define palette, spacing, radii, container width, typography,
 and a subtle shadow. Dark orange is used for accessible CTA backgrounds and accent
 text; the brighter orange remains a decorative brand accent. System sans-serif
@@ -74,6 +78,9 @@ black margins without modifying the source image or cutting the logo. Its raster
 source is retained; a clean transparent export would simplify future presentation.
 The header uses its mobile disclosure below 1024px so the logo and subtitle fit
 comfortably alongside navigation at tablet sizes.
+The main header is sticky across all routes, with an opaque warm cream background.
+CSS anchor clearance keeps homepage section headings below it. The mobile menu
+opens over the content without shifting the page layout.
 These are initial design decisions, not final owner-approved brand specifications.
 
 ## Data and content strategy
