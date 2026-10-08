@@ -40,9 +40,7 @@ Homepage `/`:
 - Menu/highlights
 - Over ons
 - Gallery preview
-- Optional breakfast/high-tea content
-- Instagram/social section
-- Visit/contact/opening information
+- Contact, reservations guidance, and opening information
 - Footer
 
 Separate page: `/galerij`.
@@ -51,12 +49,15 @@ Future reservation functionality: `/reserveren` (currently a placeholder route).
 
 Existing bakery/product promotional sections may be removed, merged, or redesigned;
 those decisions are not final. The homepage now includes structural versions of
-these sections with real branding and photography alongside temporary business
-copy. `/galerij` now has an initial responsive photo grid; `/reserveren` remains
+these sections with real branding, photography, and approved business copy.
+Empty extra-content and Instagram-feed placeholders have been removed for now.
+`/galerij` has an initial responsive photo grid; `/reserveren` remains
 a placeholder without reservation functionality.
 
 Current shared navigation: Menu → `/#menu`, Over ons → `/#over-ons`,
-Galerij → `/galerij`, Bezoek → `/#bezoek`, and Reserveer → `/reserveren`.
+Galerij → `/galerij`, Contact → `/#contact`, and Reserveer → `/#contact`.
+The hero's visit link also targets Contact. `/galerij` has a visible active state
+with `aria-current="page"`; no scroll-spy is used for homepage anchors.
 
 ## Design direction
 
@@ -72,16 +73,31 @@ The shared brand lockup uses a circular CSS crop to hide the supplied logo's lar
 black margins without modifying the source image or cutting the logo. Its raster
 source is retained; a clean transparent export would simplify future presentation.
 The header uses its mobile disclosure below 1024px so the logo and subtitle fit
-comfortably alongside navigation at tablet sizes. The navigation destinations are unchanged.
+comfortably alongside navigation at tablet sizes.
 These are initial design decisions, not final owner-approved brand specifications.
 
 ## Data and content strategy
 
 Initially use local TypeScript/JSON-style files in `src/data/`. The current file
-contains the business name and approved subtitle. Public-facing
+contains the business name, approved subtitle, and verified contact information. Public-facing
 content is primarily Dutch. Do not invent business facts, prices, opening hours,
 menu items, addresses, or claims; verify real content with the owner.
 No CMS is being added at this stage.
+
+### Verified business information (8 October 2026)
+
+Owner-provided current details are used in Contact and the footer:
+
+- Turuncu Café en Bakkerij, Lekkenburg 67, 2804 XB Gouda, Winkelcentrum Bloemendaal
+- Phone: `+31 6 36044912` with `tel:+31636044912`
+- Instagram: `@turuncugouda.nl`; TikTok: `@turuncugouda`
+- Monday and Sunday closed; Tuesday through Saturday `10:00–16:30`.
+  Conflicting old-site references to 09:30 or around 17:00 must not be used.
+- No verified email address is available; do not invent one.
+
+Approved Over ons copy describes Turkish hospitality, Dutch gezelligheid, the
+café/bakery/lunch offering, and a welcome for families and children. No founder,
+opening-year, sourcing, or award claims have been added.
 
 ### Photography and menu references
 
@@ -93,10 +109,14 @@ source resolution. No external or generated photography is used.
 
 Main assignments: `borek-coffee.webp` for the contained 4:3 hero, `latte-art.webp`
 for Café, `ig-08.webp` for Bakkerij, `menemen.webp` for Lunch, and
-`counter-tulips.webp` for Over ons. Six different photos form the homepage preview;
+`counter-tulips.webp` for Over ons. The homepage preview displays three photos on
+small mobiles and six from 576px upwards;
 `src/data/gallery.ts` shares image metadata with a reusable `PhotoGrid` component
 and the full gallery. The gallery currently includes 13 distinct suitable photos.
 The letterboxed `ig-07.webp` is preserved but not displayed.
+The full gallery opens with food, coffee, bakery, lunch, and atmosphere. Small
+per-image presentation hints bring the latte cup into focus and preserve space
+above the portrait subject's head, without changing source assets.
 
 Both menu PNGs remain source/reference material only. They are not rendered,
 OCR-processed, or converted into menu data. Items and prices must be verified
@@ -109,6 +129,9 @@ Plan an integrated experience inside the website, likely at `/reserveren`.
 It may later need server endpoints, a database, and email notifications.
 None is implemented now. When requirements are confirmed, reconsider rendering,
 adapter/runtime, and hosting capabilities while retaining static content where possible.
+For now, Reserveer leads to Contact and visitors are directed to reserve by phone
+or Instagram. `/reserveren` is retained only for the future integrated system,
+is not linked in the main navigation, and does not claim online booking is available.
 
 ## Hosting and deployment direction
 
@@ -123,17 +146,19 @@ Future reservations will require a separate decision about server/runtime suppor
 - Vue integration, React, Tailwind, UI/component and animation libraries
 - Sanity or another CMS, Supabase, databases, backend/API services
 - Reservation implementation, endpoints, and email notifications
-- Final homepage/business copy, structured menu content, and gallery filters/lightbox
+- Final structured menu content and gallery filters/lightbox
 
 ## Current implementation status
 
 - Official minimal Astro starter incorporated in the existing repository root.
 - Existing README identity and Git history preserved; README expanded for developers.
-- `/` contains hero, menu/highlights, Over ons, gallery preview, optional extra-content
-  space, Instagram placeholder, and visit/contact sections, followed by the shared footer.
+- `/` contains hero, menu/highlights, Over ons, gallery preview, and verified Contact
+  information, followed by the shared footer. Empty extra-content and social-feed
+  placeholders are removed. The header is compact and mobile category photos are shorter.
   The hero uses “Turuncu Café en Bakkerij”, the approved brand subtitle, and a real
   börek/coffee photograph, with “Bekijk de galerij” and “Bezoek ons” CTAs.
-  Real menu, address, hours, contact, social links, and business story remain unverified.
+  Contact includes approved address, hours, phone, social links, Google Maps directions,
+  and reservation guidance. Over ons has real approved copy. Final menu details remain unverified.
 - `/galerij` has a responsive photo grid with varied composition, a neutral Dutch
   introduction, and the shared layout. `/reserveren` remains a clearly marked placeholder.
 - Reusable `src/layouts/BaseLayout.astro`, `SiteHeader`, `SiteFooter`, and `Section`
@@ -192,9 +217,22 @@ Future reservations will require a separate decision about server/runtime suppor
 - Menu reference images and the unused letterboxed photo are absent from the build.
 - No dependencies added; responsive outputs keep original source files intact.
 
+## Verified business content checkpoint (8 October 2026)
+
+- Astro/type checks pass with zero errors, warnings, or hints; static build succeeds.
+- Production browser checks cover all three routes at 320, 375, 768, 1024, and 1440px,
+  including all header links, Contact anchors, Reserveer routing, phone links,
+  gallery active state, mobile keyboard/Escape behavior, and no horizontal overflow.
+- Header measures 97px on mobile/tablet and 105px on desktop. The 320px homepage is
+  approximately 20% shorter than the preceding checkpoint; preview count is three
+  on small mobiles and six on larger screens. All 13 full-gallery photos remain.
+- Screenshots reviewed for image crops, opening-hours layout, logo, and subtitle.
+- Source-asset hashes remain unchanged. No dependencies added; online booking and
+  final menu extraction remain deferred.
+
 ## Near-term roadmap
 
-1. Confirm real business content, menu details, and page priorities with the owner.
+1. Confirm final menu details/prices and any additional business content with the owner.
 2. Refine homepage sections, anchor navigation, and responsive design direction.
 3. Implement the approved homepage and gallery incrementally using local data.
 4. Confirm Hostinger capabilities and establish the GitHub deployment workflow.
@@ -203,7 +241,7 @@ Future reservations will require a separate decision about server/runtime suppor
 ## Important unresolved decisions
 
 - Final homepage sections and the fate of existing promotional sections
-- Breakfast/high-tea scope and verified practical/menu information
+- Breakfast/high-tea scope, final menu items/prices, and any future email contact
 - Final design tokens, gallery organization, and any additional high-resolution photo assets
 - Hostinger plan, GitHub deployment integration, and future server capabilities
 - Reservation functionality, operations, data model, and notification requirements

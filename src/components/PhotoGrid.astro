@@ -1,20 +1,22 @@
 ---
 import { Image } from 'astro:assets';
-import type { ImageMetadata } from 'astro';
+import type { GalleryPhoto } from '../data/gallery';
 
 interface Props {
-  photos: { image: ImageMetadata; alt: string }[];
+  photos: GalleryPhoto[];
   varied?: boolean;
+  preview?: boolean;
 }
-const { photos, varied = false } = Astro.props;
+const { photos, varied = false, preview = false } = Astro.props;
 ---
 
-<div class:list={['gallery-grid', { 'gallery-full': varied }]}>
-  {photos.map(({ image, alt }) => (
-    <figure class="gallery-card">
+<div class:list={['gallery-grid', { 'gallery-full': varied, 'gallery-preview': preview }]}>
+  {photos.map(({ image, alt, objectPosition, portrait }) => (
+    <figure class:list={['gallery-card', { 'gallery-portrait': portrait }]}>
       <Image src={image} alt={alt} width={Math.min(640, image.width)}
         widths={[320, 480, 640, 960].filter((width) => width <= image.width)}
         sizes="(min-width: 1248px) 379px, (min-width: 768px) calc((100vw - 112px) / 3), (min-width: 576px) calc((100vw - 72px) / 2), calc(100vw - 48px)"
+        style={objectPosition ? { objectPosition } : undefined}
         loading="lazy" decoding="async" />
     </figure>
   ))}

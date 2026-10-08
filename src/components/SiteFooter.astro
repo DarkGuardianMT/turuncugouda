@@ -2,14 +2,22 @@
 import { navigation } from '../data/navigation';
 import { site } from '../data/site';
 import Brand from './Brand.astro';
+const pathname = Astro.url.pathname.replace(/\/$/, '') || '/';
 ---
 
 <footer class="site-footer">
   <div class="container footer-inner">
     <div><Brand /><p>{site.name}</p></div>
     <nav aria-label="Footernavigatie">
-      <ul>{navigation.map(({ label, href }) => <li><a href={href}>{label}</a></li>)}</ul>
+      <ul>{navigation.map(({ label, href }) => <li><a href={href} aria-current={pathname === href ? 'page' : undefined}>{label}</a></li>)}</ul>
     </nav>
-    <p class="footer-note">Contact-, social- en bedrijfsgegevens volgen.</p>
+    <div class="footer-contact">
+      <address>{site.address}, {site.postalAddress}<br />{site.location}</address>
+      <a href={site.phoneHref}>{site.phone}</a>
+      <div class="social-links">
+        <a href={site.instagram.href}>Instagram <span class="sr-only">{site.instagram.handle}</span></a>
+        <a href={site.tiktok.href}>TikTok <span class="sr-only">{site.tiktok.handle}</span></a>
+      </div>
+    </div>
   </div>
 </footer>

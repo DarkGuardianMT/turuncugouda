@@ -1,6 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { site } from '../data/site';
+import { site, openingHours } from '../data/site';
 import Section from '../components/Section.astro';
 import { Image } from 'astro:assets';
 import PhotoGrid from '../components/PhotoGrid.astro';
@@ -17,7 +17,7 @@ import { photos, highlights, galleryPreview } from '../data/gallery';
           <p class="hero-description">{site.subtitle}</p>
           <div class="button-group">
             <a class="button button-primary" href="/galerij">Bekijk de galerij</a>
-            <a class="button button-secondary" href="/#bezoek">Bezoek ons <span aria-hidden="true">↗</span></a>
+            <a class="button button-secondary" href="/#contact">Bezoek ons <span aria-hidden="true">↗</span></a>
           </div>
         </div>
         <Image class="hero-visual" src={photos.hero.image} alt={photos.hero.alt}
@@ -34,43 +34,61 @@ import { photos, highlights, galleryPreview } from '../data/gallery';
             <Image src={photo.image} alt={photo.alt} width={Math.min(640, photo.image.width)}
               widths={[320, 480, 640, 810].filter((width) => width <= photo.image.width)}
               sizes="(min-width: 1248px) 379px, (min-width: 768px) calc((100vw - 112px) / 3), (min-width: 576px) calc((100vw - 96px) / 3), calc(100vw - 48px)"
+              style={photo.objectPosition ? { objectPosition: photo.objectPosition } : undefined}
               loading="lazy" />
             <h3>{title}</h3>
           </article>
         ))}
       </div>
-      <p class="menu-note">De menukaart wordt later toegevoegd.</p>
     </Section>
 
-    <Section id="over-ons" title="Over ons" eyebrow="Turuncu">
+    <Section id="over-ons" title="Over Turuncu" eyebrow="Turuncu">
       <div class="split-content">
         <Image class="about-visual" src={photos.atmosphere.image} alt={photos.atmosphere.alt}
           width={720} widths={[320, 480, 720, 1080]}
           sizes="(min-width: 1248px) 568px, (min-width: 768px) calc((100vw - 112px) / 2), calc(100vw - 48px)"
           loading="lazy" />
-        <p class="intro">Het verhaal van Turuncu krijgt hier binnenkort een plek.</p>
+        <div class="about-copy">
+          <p class="intro">Bij Turuncu komen Turkse gastvrijheid en Nederlandse gezelligheid samen.</p>
+          <p>Een warme plek in Gouda voor koffie, iets lekkers uit de bakkerij of een ontspannen lunch. Ook gezinnen en kinderen zijn van harte welkom.</p>
+        </div>
       </div>
     </Section>
 
     <Section title="Een kijkje bij Turuncu" eyebrow="Galerij" tone="surface">
       <div class="section-toolbar"><p>Een impressie van Turuncu Café en Bakkerij.</p><a class="text-link" href="/galerij">Bekijk de galerij <span aria-hidden="true">↗</span></a></div>
-      <PhotoGrid photos={galleryPreview} />
+      <PhotoGrid photos={galleryPreview} preview />
     </Section>
 
-    <Section title="Nog meer bij Turuncu" eyebrow="Binnenkort">
-      <div class="content-panel special-panel"><p>Deze ruimte is gereserveerd voor extra aanbod. De invulling volgt later.</p></div>
-    </Section>
-
-    <Section title="Volg Turuncu" eyebrow="Instagram" tone="surface">
-      <p class="intro">De Instagram-link en beelden worden later toegevoegd.</p>
-    </Section>
-
-    <Section id="bezoek" title="Bezoek Turuncu" eyebrow="Tot binnenkort">
-      <div class="visit-grid">
-        <div class="content-panel"><h3>Openingstijden</h3><p>Bevestigde openingstijden volgen.</p></div>
-        <div class="content-panel"><h3>Adres & locatie</h3><p>Adres en route-informatie volgen.</p></div>
-        <div class="content-panel"><h3>Contact</h3><p>Contactgegevens volgen.</p></div>
-        <div class="content-panel map-placeholder"><h3>Vind ons</h3><p>Een kaart of routelink wordt later toegevoegd.</p></div>
+    <Section id="contact" title="Contact" eyebrow="In Winkelcentrum Bloemendaal">
+      <div class="contact-grid">
+        <div class="contact-details">
+          <h3>Contactgegevens</h3>
+          <address>
+            <strong>{site.name}</strong><br />
+            {site.address}<br />{site.postalAddress}<br />{site.location}
+          </address>
+          <a class="text-link" href={site.phoneHref}>{site.phone}</a>
+          <div class="social-links">
+            <a href={site.instagram.href}>Instagram: {site.instagram.handle}</a>
+            <a href={site.tiktok.href}>TikTok: {site.tiktok.handle}</a>
+          </div>
+        </div>
+        <div class="contact-hours">
+          <h3>Openingstijden</h3>
+          <dl class="opening-hours">
+            {openingHours.map(({ days, hours }) => <div><dt>{days}</dt><dd>{hours}</dd></div>)}
+          </dl>
+        </div>
+        <div class="reservation-guidance">
+          <h3>Reserveren</h3>
+          <p>{site.reservationMessage}</p>
+          <div class="button-group">
+            <a class="button button-primary" href={site.phoneHref}>Bel ons</a>
+            <a class="button button-secondary" href={site.instagram.href}>Instagram</a>
+            <a class="button button-secondary" href={site.directionsHref}>Route <span aria-hidden="true">↗</span></a>
+          </div>
+        </div>
       </div>
     </Section>
   </main>
