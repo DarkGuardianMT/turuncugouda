@@ -60,9 +60,9 @@ img { display: block; max-width: 100%; height: auto; }
 /* Toont de cirkel uit het originele logo zonder de zwarte marges; het bronbestand blijft intact. */
 .brand-logo img { position: absolute; width: 118.52%; max-width: none; height: auto; left: -9.26%; top: -36.67%; }
 .brand-subtitle { color: var(--color-text); font-size: 0.75rem; line-height: 1.5; letter-spacing: 0.025em; white-space: nowrap; }
-.site-header .brand { flex-direction: row; }
-.site-header .brand-logo { width: 64px; }
-.site-header .brand-subtitle { max-width: 100px; white-space: normal; }
+.site-header .brand { flex-direction: row; min-width: 0; }
+.site-header .brand-logo { width: 64px; flex-shrink: 0; }
+.site-header .brand-subtitle { min-width: 0; max-width: 100px; white-space: normal; }
 .site-navigation { width: 100%; }
 .site-navigation ul, .site-footer ul { margin: 0; padding: 0; list-style: none; }
 .site-navigation ul { display: flex; flex-direction: column; gap: var(--space-1); }
@@ -130,6 +130,12 @@ address { font-style: normal; }
 .route-placeholder .intro { margin-block: var(--space-3) var(--space-4); }
 
 @media (max-width: 63.99rem) {
+  .header-inner:has(.menu-toggle:not([hidden])) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: var(--space-1);
+  }
+  .menu-toggle { white-space: nowrap; }
   .header-inner:has(.menu-toggle:not([hidden])) .site-navigation {
     position: absolute;
     top: 100%;

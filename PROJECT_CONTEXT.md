@@ -191,6 +191,8 @@ adapter/runtime, and hosting capabilities while retaining static content where p
 For now, Reserveer leads to Contact and visitors are directed to reserve by phone
 or Instagram. `/reserveren` is retained only for the future integrated system,
 is not linked in the main navigation, and does not claim online booking is available.
+It now explains that online booking will come later and provides the current
+phone, Instagram, and Contact fallback actions using verified shared contact data.
 
 ## Hosting and deployment direction
 
@@ -217,6 +219,11 @@ implemented or selected for it yet.
 - AI chatbot implementation
 
 ## Current implementation status
+
+Public-facing frontend v1 feature implementation is functionally complete after
+the focused polish checkpoint of 15 October 2026. Browser acceptance of this pass
+and the remaining owner content confirmations are still outstanding. Reservation
+backend, CMS, deployment, and chatbot work remain separate future tasks.
 
 - Official minimal Astro starter incorporated in the existing repository root.
 - Existing README identity and Git history preserved; README expanded for developers.

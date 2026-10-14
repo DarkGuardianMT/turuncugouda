@@ -72,9 +72,16 @@
       description.textContent = dataset.galleryDescription!;
       count.textContent = `${current + 1} / ${visibleTriggers.length}`;
       announcement.textContent = `Foto ${current + 1} van ${visibleTriggers.length}`;
+      revealImage();
     }
 
-    image.addEventListener('load', () => stage.setAttribute('aria-busy', 'false'));
+    function revealImage() {
+      if (image.complete && image.naturalWidth > 0 && image.currentSrc === image.src) {
+        stage.setAttribute('aria-busy', 'false');
+      }
+    }
+
+    image.addEventListener('load', revealImage);
     image.addEventListener('error', () => {
       stage.setAttribute('aria-busy', 'false');
       image.hidden = true;
@@ -136,7 +143,7 @@
     margin: 0; padding: var(--lightbox-top) var(--lightbox-right) var(--lightbox-bottom) var(--lightbox-left); border: 0;
     background: transparent; color: var(--color-card);
   }
-  .gallery-lightbox::backdrop { background: rgb(20 15 11 / 94%); }
+  .gallery-lightbox::backdrop { background: rgb(20 15 11 / 97%); }
   .gallery-lightbox[open] { display: grid; place-items: center; }
   .lightbox-content {
     width: min(100%, var(--container-width)); height: 100%; min-height: 0;
@@ -161,6 +168,7 @@
   /* De foto bepaalt niet de afmetingen van het podium of de positie van de knoppen. */
   .lightbox-stage { position: relative; min-width: 0; min-height: 0; display: grid; place-items: center; }
   .lightbox-image { position: absolute; inset: 0; margin: auto; width: auto; height: auto; max-width: 100%; max-height: 100%; object-fit: contain; border-radius: var(--radius-small); }
+  .lightbox-stage[aria-busy='true'] .lightbox-image { visibility: hidden; }
   .lightbox-caption { min-width: 0; }
   .lightbox-caption h2 { font-size: 1.5rem; letter-spacing: -0.02em; }
   .lightbox-caption p { color: var(--color-border); margin-top: 0.375rem; font-size: var(--text-small); }

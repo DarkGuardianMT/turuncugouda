@@ -34,7 +34,7 @@ import { photos, highlights, galleryPreview } from '../data/gallery';
             <Image src={photo.image} alt={photo.alt} width={Math.min(640, photo.image.width)}
               widths={[320, 480, 640, 810].filter((width) => width <= photo.image.width)}
               sizes="(min-width: 1248px) 379px, (min-width: 768px) calc((100vw - 112px) / 3), (min-width: 576px) calc((100vw - 96px) / 3), calc(100vw - 48px)"
-              style={photo.objectPosition ? { objectPosition: photo.objectPosition } : undefined}
+              style={{ objectPosition: title === 'Café' ? '50% 100%' : photo.objectPosition ?? 'center' }}
               loading="lazy" />
             <h3>{title}</h3>
           </article>

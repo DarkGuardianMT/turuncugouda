@@ -13,17 +13,18 @@ import { site } from '../data/site';
         <h1>Ons menu</h1>
         <p class="intro">Van een kop koffie tot ontbijt, lunch en iets zoets.</p>
       </header>
-      <nav class="menu-categories" aria-label="Menucategorieën">
+      <nav id="menu-categorieen" class="menu-categories" aria-label="Menucategorieën" tabindex="-1">
         <ul>{menu.map((group) => <li><a href={`#${group.id}`}>{group.name}</a></li>)}</ul>
       </nav>
       {menu.map((group) => (
-        <section class="menu-group" id={group.id} aria-labelledby={`${group.id}-heading`}>
+        <section class:list={['menu-group', { 'menu-group-single': group.categories.length === 1 }]} id={group.id} aria-labelledby={`${group.id}-heading`}>
           <h2 id={`${group.id}-heading`}>{group.name}</h2>
           <div class="menu-category-grid">
             {group.categories.map((category) => (
               <MenuCategory category={category} showHeading={category.name !== group.name} />
             ))}
           </div>
+          <p class="menu-return"><a class="text-link" href="#menu-categorieen">Naar categorieën <span aria-hidden="true">↑</span></a></p>
         </section>
       ))}
       <aside class="menu-contact" aria-labelledby="menu-contact-heading">
@@ -37,13 +38,16 @@ import { site } from '../data/site';
 
 <style>
   .menu-introduction .intro { margin-top: var(--space-3); }
-  .menu-categories { margin-block: var(--space-4) var(--space-5); }
+  .menu-categories { margin-block: var(--space-4) var(--space-5); scroll-margin-top: var(--header-clearance); }
   .menu-categories ul { display: flex; flex-wrap: wrap; gap: var(--space-1); list-style: none; padding: 0; margin: 0; }
   .menu-categories a { display: inline-flex; align-items: center; min-height: 44px; padding: 0.5rem 0.875rem; border: 1px solid var(--color-border); border-radius: var(--radius-small); text-decoration: none; }
   .menu-categories a:hover { color: var(--color-primary-dark); border-color: var(--color-primary-dark); text-decoration: underline; }
-  .menu-group { padding-block: var(--space-5); border-top: 1px solid var(--color-border); scroll-margin-top: var(--header-clearance); }
-  .menu-group > h2 { margin-bottom: var(--space-4); }
-  .menu-category-grid { display: grid; gap: var(--space-5); }
+  .menu-group { padding-block: var(--space-4); border-top: 1px solid var(--color-border); scroll-margin-top: var(--header-clearance); }
+  .menu-group > h2 { margin-bottom: var(--space-3); }
+  .menu-category-grid { display: grid; gap: var(--space-4); }
+  .menu-group-single > h2, .menu-group-single .menu-category-grid, .menu-group-single .menu-return { max-width: 52rem; margin-inline: auto; }
+  .menu-group-single .menu-category-grid { grid-template-columns: minmax(0, 1fr); }
+  .menu-return { margin-top: var(--space-3); }
   .menu-contact { margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--color-border); }
   .menu-contact h2 { margin-bottom: var(--space-2); }
   @media (min-width: 48rem) {
