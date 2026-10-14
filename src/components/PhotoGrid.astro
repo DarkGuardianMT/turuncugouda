@@ -1,23 +1,43 @@
 ---
-import { Image } from 'astro:assets';
+import { Image, getImage } from 'astro:assets';
 import type { GalleryPhoto } from '../data/gallery';
 
 interface Props {
   photos: GalleryPhoto[];
-  varied?: boolean;
+  interactive?: boolean;
   preview?: boolean;
 }
-const { photos, varied = false, preview = false } = Astro.props;
+const { photos, interactive = false, preview = false } = Astro.props;
+const largeImages = interactive ? await Promise.all(photos.map(({ image }) =>
+  getImage({ src: image, width: Math.min(1600, image.width), format: 'webp', quality: 85 })
+)) : [];
 ---
 
-<div class:list={['gallery-grid', { 'gallery-full': varied, 'gallery-preview': preview }]}>
-  {photos.map(({ image, alt, objectPosition, portrait }) => (
-    <figure class:list={['gallery-card', { 'gallery-portrait': portrait }]}>
-      <Image src={image} alt={alt} width={Math.min(640, image.width)}
-        widths={[320, 480, 640, 960].filter((width) => width <= image.width)}
-        sizes="(min-width: 1248px) 379px, (min-width: 768px) calc((100vw - 112px) / 3), (min-width: 576px) calc((100vw - 72px) / 2), calc(100vw - 48px)"
-        style={objectPosition ? { objectPosition } : undefined}
-        loading="lazy" decoding="async" />
+<div class:list={['gallery-grid', { 'gallery-full': interactive, 'gallery-preview': preview }]}>
+  {photos.map(({ image, alt, objectPosition, title, description }, index) => (
+    <figure class="gallery-card">
+      {interactive ? (
+        <button class="gallery-trigger" type="button" aria-label={`Vergroot foto: ${title}`}
+          aria-haspopup="dialog" aria-controls="gallery-lightbox" disabled
+          data-gallery-image={largeImages[index].src} data-gallery-alt={alt}
+          data-gallery-title={title} data-gallery-description={description}
+          data-gallery-width={largeImages[index].attributes.width}
+          data-gallery-height={largeImages[index].attributes.height}>
+          <Image src={image} alt={alt} width={Math.min(640, image.width)}
+            widths={[320, 480, 640, 960].filter((width) => width <= image.width)}
+            sizes="(min-width: 1248px) 379px, (min-width: 1024px) calc((100vw - 112px) / 3), (min-width: 768px) calc((100vw - 88px) / 2), (min-width: 576px) calc((100vw - 72px) / 2), calc(100vw - 48px)"
+            style={objectPosition ? { objectPosition } : undefined}
+            loading="lazy" decoding="async" />
+          <span class="gallery-zoom" aria-hidden="true">Vergroot ↗</span>
+        </button>
+        <figcaption><h2>{title}</h2><p>{description}</p></figcaption>
+      ) : (
+        <Image src={image} alt={alt} width={Math.min(640, image.width)}
+          widths={[320, 480, 640, 960].filter((width) => width <= image.width)}
+          sizes="(min-width: 1248px) 379px, (min-width: 768px) calc((100vw - 112px) / 3), (min-width: 576px) calc((100vw - 72px) / 2), calc(100vw - 48px)"
+          style={objectPosition ? { objectPosition } : undefined}
+          loading="lazy" decoding="async" />
+      )}
     </figure>
   ))}
 </div>

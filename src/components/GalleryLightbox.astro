@@ -1,0 +1,138 @@
+<dialog id="gallery-lightbox" class="gallery-lightbox" aria-labelledby="lightbox-title" aria-describedby="lightbox-description">
+  <div class="lightbox-content">
+    <div class="lightbox-toolbar">
+      <p class="lightbox-count" data-lightbox-count></p>
+      <button type="button" class="lightbox-control" data-lightbox-close autofocus aria-label="Sluit vergrote foto">Sluiten <span aria-hidden="true">×</span></button>
+    </div>
+    <div class="lightbox-stage" aria-busy="false">
+      <img class="lightbox-image" alt="" decoding="async" />
+      <p class="lightbox-message" hidden>De foto kon niet worden geladen. Probeer een andere foto.</p>
+    </div>
+    <div class="lightbox-footer">
+      <div class="lightbox-caption" aria-live="polite" aria-atomic="true">
+        <h2 id="lightbox-title"></h2>
+        <p id="lightbox-description"></p>
+        <span class="sr-only" data-lightbox-announcement></span>
+      </div>
+      <div class="lightbox-navigation" role="group" aria-label="Fotonavigatie">
+        <button type="button" class="lightbox-control" data-lightbox-previous aria-label="Vorige foto"><span aria-hidden="true">←</span> Vorige</button>
+        <button type="button" class="lightbox-control" data-lightbox-next aria-label="Volgende foto">Volgende <span aria-hidden="true">→</span></button>
+      </div>
+    </div>
+  </div>
+</dialog>
+
+<script>
+  const dialog = document.querySelector<HTMLDialogElement>('#gallery-lightbox');
+  const triggers = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-gallery-image]'));
+
+  if (dialog && typeof dialog.showModal === 'function') {
+    const image = dialog.querySelector<HTMLImageElement>('.lightbox-image')!;
+    const stage = dialog.querySelector<HTMLElement>('.lightbox-stage')!;
+    const message = dialog.querySelector<HTMLElement>('.lightbox-message')!;
+    const title = dialog.querySelector<HTMLElement>('#lightbox-title')!;
+    const description = dialog.querySelector<HTMLElement>('#lightbox-description')!;
+    const count = dialog.querySelector<HTMLElement>('[data-lightbox-count]')!;
+    const announcement = dialog.querySelector<HTMLElement>('[data-lightbox-announcement]')!;
+    const close = dialog.querySelector<HTMLButtonElement>('[data-lightbox-close]')!;
+    let current = 0;
+    let opener: HTMLButtonElement | null = null;
+    let previousOverflow = '';
+
+    function show(index: number) {
+      current = (index + triggers.length) % triggers.length;
+      const { dataset } = triggers[current];
+      stage.setAttribute('aria-busy', 'true');
+      message.hidden = true;
+      image.hidden = false;
+      image.alt = dataset.galleryAlt!;
+      image.width = Number(dataset.galleryWidth);
+      image.height = Number(dataset.galleryHeight);
+      image.src = dataset.galleryImage!;
+      title.textContent = dataset.galleryTitle!;
+      description.textContent = dataset.galleryDescription!;
+      count.textContent = `${current + 1} / ${triggers.length}`;
+      announcement.textContent = `Foto ${current + 1} van ${triggers.length}`;
+    }
+
+    image.addEventListener('load', () => stage.setAttribute('aria-busy', 'false'));
+    image.addEventListener('error', () => {
+      stage.setAttribute('aria-busy', 'false');
+      image.hidden = true;
+      message.hidden = false;
+    });
+
+    triggers.forEach((trigger, index) => {
+      trigger.disabled = false;
+      trigger.addEventListener('click', () => {
+        opener = trigger;
+        show(index);
+        previousOverflow = document.documentElement.style.overflow;
+        document.documentElement.style.overflow = 'hidden';
+        dialog.showModal();
+        close.focus();
+      });
+    });
+
+    close.addEventListener('click', () => dialog.close());
+    dialog.querySelector('[data-lightbox-previous]')!.addEventListener('click', () => show(current - 1));
+    dialog.querySelector('[data-lightbox-next]')!.addEventListener('click', () => show(current + 1));
+    dialog.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+        event.preventDefault();
+        show(current + (event.key === 'ArrowLeft' ? -1 : 1));
+      }
+    });
+
+    // Alleen een volledige klik op de achtergrond sluit de dialoog; slepen vanuit de foto niet.
+    let backdropPointerDown = false;
+    dialog.addEventListener('pointerdown', (event) => {
+      backdropPointerDown = event.target === dialog;
+    });
+    dialog.addEventListener('click', (event) => {
+      if (backdropPointerDown && event.target === dialog) dialog.close();
+      backdropPointerDown = false;
+    });
+    dialog.addEventListener('close', () => {
+      document.documentElement.style.overflow = previousOverflow;
+      opener?.focus({ preventScroll: true });
+    });
+  }
+</script>
+
+<style>
+  .gallery-lightbox {
+    width: 100%; max-width: none; height: 100%; max-height: none;
+    margin: 0; padding: var(--space-2); border: 0;
+    background: transparent; color: var(--color-card);
+  }
+  .gallery-lightbox::backdrop { background: rgb(20 15 11 / 94%); }
+  .gallery-lightbox[open] { display: grid; place-items: center; }
+  .lightbox-content {
+    width: min(100%, 74rem); max-height: 100%; min-height: 0;
+    display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: var(--space-2);
+  }
+  .lightbox-toolbar, .lightbox-footer { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+  .lightbox-count { color: var(--color-border); font-variant-numeric: tabular-nums; }
+  .lightbox-control {
+    display: inline-flex; align-items: center; justify-content: center; gap: var(--space-1);
+    min-height: 48px; padding: 0.5rem 0.875rem;
+    border: 1px solid rgb(255 253 250 / 35%); border-radius: var(--radius-small);
+    background: rgb(255 253 250 / 8%); color: inherit; cursor: pointer;
+  }
+  .lightbox-control:hover { background: rgb(255 253 250 / 18%); }
+  .lightbox-control:focus-visible { outline-color: var(--color-card); outline-offset: 3px; }
+  .lightbox-stage { min-height: 0; display: grid; place-items: center; }
+  .lightbox-image { width: auto; height: auto; max-width: 100%; max-height: min(68dvh, 56rem, calc(100dvh - 12rem)); object-fit: contain; border-radius: var(--radius-small); }
+  .lightbox-caption { min-width: 0; }
+  .lightbox-caption h2 { font-size: 1.5rem; letter-spacing: -0.02em; }
+  .lightbox-caption p { color: var(--color-border); margin-top: 0.375rem; font-size: var(--text-small); }
+  .lightbox-navigation { display: flex; gap: var(--space-1); flex-shrink: 0; }
+  .lightbox-message { padding: var(--space-4); }
+  @media (max-width: 35.99rem) {
+    .gallery-lightbox { padding: 0.75rem; }
+    .lightbox-footer { flex-direction: column; align-items: stretch; }
+    .lightbox-navigation { justify-content: space-between; }
+    .lightbox-image { max-height: min(56dvh, calc(100dvh - 16rem)); }
+  }
+</style>

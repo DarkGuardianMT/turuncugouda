@@ -51,7 +51,7 @@ Existing bakery/product promotional sections may be removed, merged, or redesign
 those decisions are not final. The homepage now includes structural versions of
 these sections with real branding, photography, and approved business copy.
 Empty extra-content and Instagram-feed placeholders have been removed for now.
-`/galerij` has an initial responsive photo grid; `/reserveren` remains
+`/galerij` has a captioned responsive photo grid and an accessible lightbox; `/reserveren` remains
 a placeholder without reservation functionality.
 
 Current shared navigation: Menu → `/#menu`, Over ons → `/#over-ons`,
@@ -121,14 +121,33 @@ small mobiles and six from 576px upwards;
 `src/data/gallery.ts` shares image metadata with a reusable `PhotoGrid` component
 and the full gallery. The gallery currently includes 13 distinct suitable photos.
 The letterboxed `ig-07.webp` is preserved but not displayed.
+Gallery items have short Dutch titles, descriptions, and category metadata from
+the stable set Café, Bakkerij, Lunch, Zoet, and Sfeer. Uncertain products retain
+generic labels; specific varieties still need owner confirmation. Categories are
+metadata only; filtering remains deferred. The homepage preview stays static and
+intentionally simpler, with its existing link to `/galerij` and no lightbox script.
+The full gallery uses consistent 4:3 photo crops with captions underneath and
+one column on small mobiles, two from 576px, and three from 1024px.
 The full gallery opens with food, coffee, bakery, lunch, and atmosphere. Small
 per-image presentation hints bring the latte cup into focus and preserve space
 above the portrait subject's head, without changing source assets.
 
 Both menu PNGs remain source/reference material only. They are not rendered,
 OCR-processed, or converted into menu data. Items and prices must be verified
-before structured/final menu implementation. Gallery filters, lightbox, pagination,
+before structured/final menu implementation. Gallery filters, pagination,
 CMS, and reservation functionality remain deferred.
+
+The full gallery uses one small vanilla TypeScript script and native `dialog`:
+previous/next buttons and arrow keys wrap through the collection, Escape and an
+explicit close button dismiss it, and a complete backdrop click also closes it.
+Native modal behavior keeps background content inert and keyboard focus inside;
+focus moves to Close on opening and returns to the original photo on closing.
+Root scroll overflow is locked while open and its previous inline value restored
+on close; a stable scrollbar gutter avoids layout jumps. Without JavaScript or
+native dialog support, photos and captions remain visible with disabled triggers.
+Astro generates larger WebP versions capped at 1600px and source resolution;
+their URLs are data attributes, assigned to the modal image only when requested.
+No large images are preloaded. Thumbnails retain responsive Astro Image output.
 
 ## Future reservation system
 
@@ -153,7 +172,7 @@ Future reservations will require a separate decision about server/runtime suppor
 - Vue integration, React, Tailwind, UI/component and animation libraries
 - Sanity or another CMS, Supabase, databases, backend/API services
 - Reservation implementation, endpoints, and email notifications
-- Final structured menu content and gallery filters/lightbox
+- Final structured menu content and gallery filters
 
 ## Current implementation status
 
@@ -166,8 +185,8 @@ Future reservations will require a separate decision about server/runtime suppor
   börek/coffee photograph, with “Bekijk de galerij” and “Bezoek ons” CTAs.
   Contact includes approved address, hours, phone, social links, Google Maps directions,
   and reservation guidance. Over ons has real approved copy. Final menu details remain unverified.
-- `/galerij` has a responsive photo grid with varied composition, a neutral Dutch
-  introduction, and the shared layout. `/reserveren` remains a clearly marked placeholder.
+- `/galerij` has 13 captioned photos and a native accessible lightbox, a neutral
+  Dutch introduction, and the shared layout. `/reserveren` remains a clearly marked placeholder.
 - Reusable `src/layouts/BaseLayout.astro`, `SiteHeader`, `SiteFooter`, and `Section`
   components, plus shared `Brand` and `PhotoGrid`, global CSS patterns, and local data.
 - Mobile-first layouts stack on small screens and use grids at wider widths.
@@ -236,6 +255,22 @@ Future reservations will require a separate decision about server/runtime suppor
 - Screenshots reviewed for image crops, opening-hours layout, logo, and subtitle.
 - Source-asset hashes remain unchanged. No dependencies added; online booking and
   final menu extraction remain deferred.
+
+## Gallery lightbox checkpoint (14 October 2026)
+
+- Astro/type checks pass without errors, warnings, or hints; production build
+  generates all three static routes.
+- HTTP smoke checks pass for `/`, `/galerij/`, and `/reserveren/`. Generated output
+  has all 13 captioned photos, valid large-image assets/dimensions, no initial
+  large-image sources, and the unchanged six-image static homepage preview.
+- A temporary Node event harness exercises the actual lightbox script: all 13
+  metadata updates, button/arrow navigation and wrapping, close/backdrop handlers,
+  opener focus and previous overflow restoration, and image load/error handling.
+- Source photography/menu assets and dependencies remain unchanged.
+- Browser verification is still pending: this session exposed no browser surfaces,
+  and both in-app browser and Chrome creation returned unavailable. Actual 320px,
+  375px, tablet and desktop rendering, crops, overflow, native keyboard activation,
+  Escape, focus containment and page scroll behavior require a browser check.
 
 ## Near-term roadmap
 
