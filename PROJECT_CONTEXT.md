@@ -123,8 +123,15 @@ and the full gallery. The gallery currently includes 13 distinct suitable photos
 The letterboxed `ig-07.webp` is preserved but not displayed.
 Gallery items have short Dutch titles, descriptions, and category metadata from
 the stable set Café, Bakkerij, Lunch, Zoet, and Sfeer. Uncertain products retain
-generic labels; specific varieties still need owner confirmation. Categories are
-metadata only; filtering remains deferred. The homepage preview stays static and
+generic labels; specific varieties still need owner confirmation. `/galerij` offers
+category filtering with Alles selected on each page load, followed by Café,
+Bakkerij, Lunch, Zoet, and Sfeer in that order where photos exist. The supported
+category list is shared with the metadata type; Alles is only a filter state.
+Real buttons expose selection through `aria-pressed` and an underline as well as
+color, wrap on small screens, and announce the result count to assistive technology.
+Filtering is instant and client-side; it neither changes the URL/history nor
+persists across refreshes. The filter bar is hidden without JavaScript, leaving
+all photos visible. The homepage preview stays static and
 intentionally simpler, with its existing link to `/galerij` and no lightbox script.
 The full gallery uses consistent 4:3 photo crops with captions underneath and
 one column on small mobiles, two from 576px, and three from 1024px.
@@ -134,14 +141,17 @@ above the portrait subject's head, without changing source assets.
 
 Both menu PNGs remain source/reference material only. They are not rendered,
 OCR-processed, or converted into menu data. Items and prices must be verified
-before structured/final menu implementation. Gallery filters, pagination,
+before structured/final menu implementation. Gallery pagination,
 CMS, and reservation functionality remain deferred.
 
 The full gallery uses one small vanilla TypeScript script and native `dialog`:
-previous/next buttons and arrow keys wrap through the collection, Escape and an
-explicit close button dismiss it, and a complete backdrop click also closes it.
-Native modal behavior keeps background content inert and keyboard focus inside;
-focus moves to Close on opening and returns to the original photo on closing.
+previous/next buttons and arrow keys wrap through the currently visible filtered
+set, with position counts relative to that set. The visible trigger list is
+captured on opening; filters cannot change while the modal is open. Closing
+preserves the chosen filter and returns focus to the original visible trigger.
+Escape and an explicit close button dismiss it, and a complete backdrop click also
+closes it. Native modal behavior keeps background content inert and keyboard focus
+inside; focus moves to Close on opening.
 Root scroll overflow is locked while open and its previous inline value restored
 on close; a stable scrollbar gutter avoids layout jumps. Without JavaScript or
 native dialog support, photos and captions remain visible with disabled triggers.
@@ -172,7 +182,7 @@ Future reservations will require a separate decision about server/runtime suppor
 - Vue integration, React, Tailwind, UI/component and animation libraries
 - Sanity or another CMS, Supabase, databases, backend/API services
 - Reservation implementation, endpoints, and email notifications
-- Final structured menu content and gallery filters
+- Final structured menu content
 
 ## Current implementation status
 
@@ -185,7 +195,7 @@ Future reservations will require a separate decision about server/runtime suppor
   börek/coffee photograph, with “Bekijk de galerij” and “Bezoek ons” CTAs.
   Contact includes approved address, hours, phone, social links, Google Maps directions,
   and reservation guidance. Over ons has real approved copy. Final menu details remain unverified.
-- `/galerij` has 13 captioned photos and a native accessible lightbox, a neutral
+- `/galerij` has category filters, 13 captioned photos and a native accessible lightbox, a neutral
   Dutch introduction, and the shared layout. `/reserveren` remains a clearly marked placeholder.
 - Reusable `src/layouts/BaseLayout.astro`, `SiteHeader`, `SiteFooter`, and `Section`
   components, plus shared `Brand` and `PhotoGrid`, global CSS patterns, and local data.

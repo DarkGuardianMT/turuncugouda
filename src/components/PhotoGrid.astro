@@ -13,9 +13,9 @@ const largeImages = interactive ? await Promise.all(photos.map(({ image }) =>
 )) : [];
 ---
 
-<div class:list={['gallery-grid', { 'gallery-full': interactive, 'gallery-preview': preview }]}>
-  {photos.map(({ image, alt, objectPosition, title, description }, index) => (
-    <figure class="gallery-card">
+<div id={interactive ? 'gallery-grid' : undefined} class:list={['gallery-grid', { 'gallery-full': interactive, 'gallery-preview': preview }]}>
+  {photos.map(({ image, alt, objectPosition, title, description, category }, index) => (
+    <figure class="gallery-card" data-gallery-category={interactive ? category : undefined}>
       {interactive ? (
         <button class="gallery-trigger" type="button" aria-label={`Vergroot foto: ${title}`}
           aria-haspopup="dialog" aria-controls="gallery-lightbox" disabled

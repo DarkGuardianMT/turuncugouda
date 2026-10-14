@@ -13,12 +13,14 @@ import latte from '../assets/photos/latte-art.webp';
 import menemen from '../assets/photos/menemen.webp';
 import type { ImageMetadata } from 'astro';
 
+export const galleryCategories = ['Café', 'Bakkerij', 'Lunch', 'Zoet', 'Sfeer'] as const;
+
 export interface GalleryPhoto {
   image: ImageMetadata;
   alt: string;
   title: string;
   description: string;
-  category: 'Café' | 'Bakkerij' | 'Lunch' | 'Zoet' | 'Sfeer';
+  category: typeof galleryCategories[number];
   objectPosition?: string;
 }
 

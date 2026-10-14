@@ -2,8 +2,10 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { site } from '../data/site';
 import PhotoGrid from '../components/PhotoGrid.astro';
-import { gallery } from '../data/gallery';
+import { gallery, galleryCategories } from '../data/gallery';
 import GalleryLightbox from '../components/GalleryLightbox.astro';
+
+const availableCategories = galleryCategories.filter((category) => gallery.some((photo) => photo.category === category));
 ---
 
 <BaseLayout title={`Galerij | ${site.name}`} description="Een kijkje bij Turuncu Café en Bakkerij: koffie, lunch, de bakkerij en de sfeer in beeld.">
@@ -12,8 +14,32 @@ import GalleryLightbox from '../components/GalleryLightbox.astro';
       <p class="eyebrow">Een kijkje bij Turuncu</p>
       <h1>Galerij</h1>
       <p class="intro">Een impressie van Turuncu Café en Bakkerij.</p>
+      <div class="gallery-filters" data-gallery-filters hidden>
+        <div class="filter-buttons" role="group" aria-label="Filter galerij">
+          <button type="button" data-gallery-filter="" aria-pressed="true" aria-controls="gallery-grid">Alles</button>
+          {availableCategories.map((category) => (
+            <button type="button" data-gallery-filter={category} aria-pressed="false" aria-controls="gallery-grid">{category}</button>
+          ))}
+        </div>
+        <p class="sr-only" role="status" data-gallery-results></p>
+      </div>
       <PhotoGrid photos={gallery} interactive />
       <GalleryLightbox />
     </div>
   </main>
 </BaseLayout>
+
+<style>
+  .gallery-filters { margin-bottom: var(--space-4); }
+  .filter-buttons { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+  .filter-buttons button {
+    min-height: 44px; padding: 0.5rem 1rem;
+    border: 1px solid var(--color-border); border-radius: var(--radius-small);
+    background: transparent; color: var(--color-text); cursor: pointer;
+  }
+  .filter-buttons button:hover { border-color: var(--color-primary-dark); }
+  .filter-buttons button[aria-pressed='true'] {
+    background: var(--color-primary-dark); color: var(--color-card); border-color: var(--color-primary-dark);
+    text-decoration: underline; text-underline-offset: 0.25em; text-decoration-thickness: 2px;
+  }
+</style>

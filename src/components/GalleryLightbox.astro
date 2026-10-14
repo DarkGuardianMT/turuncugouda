@@ -23,6 +23,26 @@
 <script>
   const dialog = document.querySelector<HTMLDialogElement>('#gallery-lightbox');
   const triggers = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-gallery-image]'));
+  const cards = Array.from(document.querySelectorAll<HTMLElement>('[data-gallery-category]'));
+  const filterBar = document.querySelector<HTMLElement>('[data-gallery-filters]');
+  const filters = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-gallery-filter]'));
+  const results = document.querySelector<HTMLElement>('[data-gallery-results]');
+
+  if (filterBar) {
+    filters.forEach((filter) => {
+      filter.addEventListener('click', () => {
+        if (dialog?.open) return;
+        const category = filter.dataset.galleryFilter;
+        cards.forEach((card) => {
+          card.hidden = Boolean(category && card.dataset.galleryCategory !== category);
+        });
+        filters.forEach((button) => button.setAttribute('aria-pressed', String(button === filter)));
+        const count = cards.filter((card) => !card.hidden).length;
+        if (results) results.textContent = `${count} ${count === 1 ? 'foto' : "foto's"} · ${filter.textContent}`;
+      });
+    });
+    filterBar.hidden = false;
+  }
 
   if (dialog && typeof dialog.showModal === 'function') {
     const image = dialog.querySelector<HTMLImageElement>('.lightbox-image')!;
@@ -34,12 +54,13 @@
     const announcement = dialog.querySelector<HTMLElement>('[data-lightbox-announcement]')!;
     const close = dialog.querySelector<HTMLButtonElement>('[data-lightbox-close]')!;
     let current = 0;
+    let visibleTriggers: HTMLButtonElement[] = [];
     let opener: HTMLButtonElement | null = null;
     let previousOverflow = '';
 
     function show(index: number) {
-      current = (index + triggers.length) % triggers.length;
-      const { dataset } = triggers[current];
+      current = (index + visibleTriggers.length) % visibleTriggers.length;
+      const { dataset } = visibleTriggers[current];
       stage.setAttribute('aria-busy', 'true');
       message.hidden = true;
       image.hidden = false;
@@ -49,8 +70,8 @@
       image.src = dataset.galleryImage!;
       title.textContent = dataset.galleryTitle!;
       description.textContent = dataset.galleryDescription!;
-      count.textContent = `${current + 1} / ${triggers.length}`;
-      announcement.textContent = `Foto ${current + 1} van ${triggers.length}`;
+      count.textContent = `${current + 1} / ${visibleTriggers.length}`;
+      announcement.textContent = `Foto ${current + 1} van ${visibleTriggers.length}`;
     }
 
     image.addEventListener('load', () => stage.setAttribute('aria-busy', 'false'));
@@ -60,9 +81,13 @@
       message.hidden = false;
     });
 
-    triggers.forEach((trigger, index) => {
+    triggers.forEach((trigger) => {
       trigger.disabled = false;
       trigger.addEventListener('click', () => {
+        if (dialog.open) return;
+        visibleTriggers = triggers.filter((item) => !item.closest<HTMLElement>('[data-gallery-category]')?.hidden);
+        const index = visibleTriggers.indexOf(trigger);
+        if (index === -1) return;
         opener = trigger;
         show(index);
         previousOverflow = document.documentElement.style.overflow;
@@ -93,7 +118,9 @@
     });
     dialog.addEventListener('close', () => {
       document.documentElement.style.overflow = previousOverflow;
-      opener?.focus({ preventScroll: true });
+      if (opener && !opener.closest<HTMLElement>('[data-gallery-category]')?.hidden) {
+        opener.focus({ preventScroll: true });
+      }
     });
   }
 </script>
