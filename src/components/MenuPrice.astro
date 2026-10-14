@@ -1,0 +1,17 @@
+---
+interface Props {
+  price?: number | null;
+  unit?: string;
+  supplement?: boolean;
+}
+const { price, unit, supplement = false } = Astro.props;
+const formatter = new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' });
+---
+
+{price != null && (
+  <span class="menu-price">{supplement ? '+ ' : ''}{formatter.format(price)}{unit ? ` ${unit}` : ''}</span>
+)}
+
+<style>
+  .menu-price { flex-shrink: 0; white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 600; }
+</style>

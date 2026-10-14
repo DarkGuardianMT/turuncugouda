@@ -1,0 +1,67 @@
+---
+import type { MenuCategory } from '../data/menu';
+import MenuPrice from './MenuPrice.astro';
+
+interface Props {
+  category: MenuCategory;
+  showHeading?: boolean;
+}
+const { category, showHeading = true } = Astro.props;
+const ItemHeading = showHeading ? 'h4' : 'h3';
+---
+
+<div class="menu-category">
+  {showHeading && <h3>{category.name}</h3>}
+  {category.description && <p class="category-note">{category.description}</p>}
+  {category.note && <p class="category-note">{category.note}</p>}
+  <ul class="menu-items">
+    {category.items.map((item) => (
+      <li class="menu-item">
+        <div class="menu-row">
+          <ItemHeading>{item.name}</ItemHeading>
+          <MenuPrice price={item.price} unit={item.unit} />
+        </div>
+        {item.description && <p class="item-description">{item.description}</p>}
+        {item.variants && (
+          <ul class="menu-options" aria-label={`Varianten voor ${item.name}`}>
+            {item.variants.map((variant) => (
+              <li class="menu-row"><span>{variant.name}</span><MenuPrice price={variant.price} unit={variant.unit} /></li>
+            ))}
+          </ul>
+        )}
+        {item.supplements && (
+          <ul class="menu-options" aria-label={`Extra’s bij ${item.name}`}>
+            {item.supplements.map((extra) => (
+              <li class="menu-row"><span>{extra.name}</span><MenuPrice price={extra.price} supplement /></li>
+            ))}
+          </ul>
+        )}
+      </li>
+    ))}
+  </ul>
+  {category.supplements && (
+    <div class="category-extras">
+      <h4>Extra’s</h4>
+      <ul class="menu-options" aria-label={`Extra’s bij ${category.name}`}>
+        {category.supplements.map((extra) => (
+          <li class="menu-row"><span>{extra.name}</span><MenuPrice price={extra.price} supplement /></li>
+        ))}
+      </ul>
+    </div>
+  )}
+</div>
+
+<style>
+  .menu-category { min-width: 0; }
+  .menu-category > h3 { margin-bottom: var(--space-2); font-family: var(--font-display); font-size: 1.625rem; font-weight: 400; line-height: 1.25; }
+  .menu-row h3, h4 { margin: 0; font-family: var(--font-body); font-size: var(--text-base); font-weight: 700; line-height: inherit; }
+  .category-note { color: var(--color-muted); margin-bottom: var(--space-2); }
+  .menu-items, .menu-options { list-style: none; margin: 0; padding: 0; }
+  .menu-item { padding-block: var(--space-2); border-bottom: 1px solid var(--color-border); }
+  .menu-row { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); }
+  .menu-row > :first-child { min-width: 0; overflow-wrap: anywhere; }
+  .item-description { color: var(--color-muted); margin-top: 0.375rem; font-size: var(--text-small); }
+  .menu-options { margin-top: var(--space-1); font-size: var(--text-small); }
+  .menu-options .menu-row + .menu-row { margin-top: 0.375rem; }
+  .category-extras { margin-top: var(--space-3); color: var(--color-muted); }
+</style>

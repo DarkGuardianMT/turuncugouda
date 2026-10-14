@@ -24,7 +24,7 @@ not the goal. The gallery will be one of the largest new features.
 - Prefer Astro components for content; add client JavaScript only for real interaction needs.
 - Vue may be added later for focused interactive islands when justified.
 - Hybrid navigation: main business content on `/` with anchor navigation,
-  with a separate gallery page for a larger photo/product collection.
+  with separate digital menu and gallery pages.
 - Keep content local and separate from presentation.
 - Avoid abstractions, integrations, or services for features that do not exist yet.
 
@@ -43,7 +43,7 @@ Homepage `/`:
 - Contact, reservations guidance, and opening information
 - Footer
 
-Separate page: `/galerij`.
+Separate pages: `/menu` for the digital menu and `/galerij` for the photo collection.
 
 Future reservation functionality: `/reserveren` (currently a placeholder route).
 
@@ -54,9 +54,9 @@ Empty extra-content and Instagram-feed placeholders have been removed for now.
 `/galerij` has a captioned responsive photo grid and an accessible lightbox; `/reserveren` remains
 a placeholder without reservation functionality.
 
-Current shared navigation: Menu → `/#menu`, Over ons → `/#over-ons`,
+Current shared navigation: Menu → `/menu`, Over ons → `/#over-ons`,
 Galerij → `/galerij`, Contact → `/#contact`, and Reserveer → `/#contact`.
-The hero's visit link also targets Contact. `/galerij` has a visible active state
+The hero's visit link also targets Contact. `/menu` and `/galerij` have visible active states
 with `aria-current="page"`; no scroll-spy is used for homepage anchors.
 
 ## Design direction
@@ -139,10 +139,33 @@ The full gallery opens with food, coffee, bakery, lunch, and atmosphere. Small
 per-image presentation hints bring the latte cup into focus and preserve space
 above the portrait subject's head, without changing source assets.
 
-Both menu PNGs remain source/reference material only. They are not rendered,
-OCR-processed, or converted into menu data. Items and prices must be verified
-before structured/final menu implementation. Gallery pagination,
+Both menu PNGs remain unchanged source/reference assets and are not displayed as
+the menu UI. The supplied manual extraction, with publication corrections provided
+by the user, is now implemented as the first structured digital menu. Gallery pagination,
 CMS, and reservation functionality remain deferred.
+
+### Digital menu
+
+`src/data/menu.ts` stores local typed groups, categories, descriptions, numeric
+prices, variants, supplements, and optional per-person units. `/menu` renders
+static semantic menu lists with six native category anchor links and sticky-header
+clearance. Original detailed category names remain visible under those groups.
+Shared Menu navigation now links to `/menu` with the existing active-page treatment.
+The homepage retains its three Café/Bakkerij/Lunch photos and a “Bekijk het menu”
+CTA; it does not duplicate the full menu.
+
+Obvious source spelling errors are normalized for publication while preserving
+Turkish names and the supplied products/descriptions. Currency uses Dutch comma
+decimals via `Intl.NumberFormat`. French toast, Turkse thee, and Baklava have
+explicit variants; supplements display separately with a plus sign. High Tea has
+editable numeric per-person prices and a separate 48-hour reservation note.
+Seven unconfirmed Smoothies/Softies prices are stored as `null` and omitted from
+visitor-facing output, without placeholder text or guessed prices. Confirm those
+prices, the name “Warme sinass”, and current High Tea conditions with the owner.
+No CMS, extra client-side menu JavaScript, backend, email address, or WhatsApp-only
+instruction is added; verified Contact remains authoritative.
+
+### Gallery interaction
 
 The full gallery uses one small vanilla TypeScript script and native `dialog`:
 previous/next buttons and arrow keys wrap through the currently visible filtered
@@ -177,12 +200,21 @@ The actual Hostinger plan, GitHub integration, and delivery workflow remain
 unconfirmed. No live deployment, hosting integration, or CI workflow is configured.
 Future reservations will require a separate decision about server/runtime support.
 
+## Future AI chatbot
+
+A lightweight AI chatbot is a later learning/feature goal, after the core site and
+likely around or after reservation functionality. It may answer opening-hours,
+location, menu and common café questions, guide visitors through reservation
+information, and eventually integrate with a reservation backend. Nothing is
+implemented or selected for it yet.
+
 ## Explicitly deferred technologies and features
 
 - Vue integration, React, Tailwind, UI/component and animation libraries
 - Sanity or another CMS, Supabase, databases, backend/API services
 - Reservation implementation, endpoints, and email notifications
-- Final structured menu content
+- Owner confirmation of remaining menu prices/product wording and High Tea conditions
+- AI chatbot implementation
 
 ## Current implementation status
 
@@ -194,7 +226,10 @@ Future reservations will require a separate decision about server/runtime suppor
   The hero uses “Turuncu Café en Bakkerij”, the approved brand subtitle, and a real
   börek/coffee photograph, with “Bekijk de galerij” and “Bezoek ons” CTAs.
   Contact includes approved address, hours, phone, social links, Google Maps directions,
-  and reservation guidance. Over ons has real approved copy. Final menu details remain unverified.
+  and reservation guidance. Over ons has real approved copy. The menu section is
+  a visual preview linking to the dedicated menu page.
+- `/menu` renders the supplied structured menu with grouped anchor navigation,
+  variant/supplement prices, and intentionally omitted unconfirmed prices.
 - `/galerij` has category filters, 13 captioned photos and a native accessible lightbox, a neutral
   Dutch introduction, and the shared layout. `/reserveren` remains a clearly marked placeholder.
 - Reusable `src/layouts/BaseLayout.astro`, `SiteHeader`, `SiteFooter`, and `Section`
@@ -282,18 +317,31 @@ Future reservations will require a separate decision about server/runtime suppor
   375px, tablet and desktop rendering, crops, overflow, native keyboard activation,
   Escape, focus containment and page scroll behavior require a browser check.
 
+## Digital menu checkpoint (14 October 2026)
+
+- Astro/type checks pass with zero diagnostics; the static build generates four pages.
+- HTTP checks pass for all four routes. Generated output checks cover all 91 menu
+  items/descriptions, 94 displayed prices, variants/supplements, seven omitted
+  null prices, six category anchors, shared navigation/active state, and homepage CTA.
+- The 101 numeric/null price fields match the supplied implementation request.
+  Gallery filter/navigation checks still pass; source assets and dependencies are unchanged.
+- Browser rendering at 320px, 375px, tablet and desktop, keyboard interaction,
+  actual anchor clearance and overflow remain pending: no browser surfaces were
+  exposed, and opening Chrome returned unavailable.
+
 ## Near-term roadmap
 
-1. Confirm final menu details/prices and any additional business content with the owner.
+1. Confirm remaining Smoothies/Softies prices, product wording, High Tea conditions,
+   and any additional business content with the owner.
 2. Refine homepage sections, anchor navigation, and responsive design direction.
-3. Implement the approved homepage and gallery incrementally using local data.
+3. Refine the homepage, digital menu, and gallery incrementally using local data.
 4. Confirm Hostinger capabilities and establish the GitHub deployment workflow.
 5. Define reservation requirements before choosing server, database, and email services.
 
 ## Important unresolved decisions
 
 - Final homepage sections and the fate of existing promotional sections
-- Breakfast/high-tea scope, final menu items/prices, and any future email contact
+- Remaining menu prices/product wording, High Tea conditions, and any future email contact
 - Final design tokens, gallery organization, and any additional high-resolution photo assets
 - Hostinger plan, GitHub deployment integration, and future server capabilities
 - Reservation functionality, operations, data model, and notification requirements

@@ -3,8 +3,9 @@
 The new website for Turuncu Café en Bakkerij in Gouda. This project is under
 active development; the homepage now has a responsive visual foundation with
 real Turuncu branding and photography. The gallery has an initial photo grid;
-verified contact details and opening hours are included. Online reservations and
-the final structured menu remain in development. The Reserveer button currently
+verified contact details and opening hours are included. Online reservations remain
+in development. The digital menu is available at `/menu`, with some prices still
+awaiting owner confirmation. The Reserveer button currently
 leads to Contact for phone or Instagram reservations.
 
 ## Stack and prerequisites
@@ -39,7 +40,7 @@ server, not a production server.
 
 ## Structure
 
-- `src/pages/`: `/`, `/galerij`, and `/reserveren`
+- `src/pages/`: `/`, `/menu`, `/galerij`, and `/reserveren`
 - `src/components/`: shared branding, header, footer, section wrapper, and photo grid
 - `src/assets/`: supplied logo, real photos, and menu reference images
 - `src/layouts/`: reusable document layout
