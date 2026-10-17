@@ -68,7 +68,8 @@ img { display: block; max-width: 100%; height: auto; }
 .site-navigation ul { display: flex; flex-direction: column; gap: var(--space-1); }
 .site-navigation a { display: inline-flex; align-items: center; min-height: 44px; padding: var(--space-1) var(--space-2); font-weight: 600; text-decoration: none; }
 .site-navigation a:not(.button):hover { color: var(--color-primary-dark); text-decoration: underline; }
-.site-navigation a[aria-current='page'], .site-footer a[aria-current='page'] { color: var(--color-primary-dark); text-decoration: underline; text-decoration-thickness: 2px; }
+.site-navigation a[aria-current='page']:not(.button), .site-footer a[aria-current='page'] { color: var(--color-primary-dark); text-decoration: underline; text-decoration-thickness: 2px; }
+.site-navigation .button[aria-current='page'] { text-decoration: underline; text-decoration-thickness: 2px; }
 .menu-toggle { display: inline-flex; align-items: center; gap: 0.65rem; min-height: 44px; padding: var(--space-1); background: transparent; border: 1px solid var(--color-border); border-radius: var(--radius-small); cursor: pointer; font-size: var(--text-small); color: var(--color-text); }
 .menu-icon { width: 18px; display: grid; gap: 4px; }
 .menu-icon span { display: block; height: 2px; background: currentColor; }

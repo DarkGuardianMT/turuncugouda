@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { createReservation } from '../../server/reservations/reservationService';
 import { validateReservation } from '../../server/reservations/validation';
 import { DatabaseConfigurationError } from '../../server/db/config.mjs';
+import { isAllowedReservationOrigin, preparePublicReservationInput } from '../../server/reservations/requestGuards';
 
 export const prerender = false;
 const maximumBodyBytes = 16 * 1024;
@@ -17,6 +18,9 @@ function error(status: number, code: string, message: string): Response {
 }
 
 export const POST: APIRoute = async ({ request }) => {
+  if (!isAllowedReservationOrigin(request)) {
+    return error(403, 'INVALID_ORIGIN', 'De aanvraag kon niet worden verwerkt. Gebruik het formulier op onze website.');
+  }
   if (request.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase() !== 'application/json') {
     return error(415, 'UNSUPPORTED_MEDIA_TYPE', 'Verstuur de gegevens als application/json.');
   }
@@ -51,7 +55,11 @@ export const POST: APIRoute = async ({ request }) => {
     reader?.releaseLock();
   }
 
-  const validated = validateReservation(input);
+  const prepared = preparePublicReservationInput(input);
+  if (prepared.blocked) {
+    return error(400, 'INVALID_REQUEST', 'De aanvraag kon niet worden verwerkt. Neem telefonisch contact met ons op.');
+  }
+  const validated = validateReservation(prepared.input);
   if (!validated.success) {
     return json({ success: false, error: {
       code: 'VALIDATION_ERROR', message: 'Controleer de ingevoerde gegevens.', fields: validated.fields,

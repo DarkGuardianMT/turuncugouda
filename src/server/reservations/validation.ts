@@ -1,15 +1,7 @@
 import type { ReservationData, ReservationFieldErrors, ReservationValidationResult } from './types.ts';
+import { reservationDateError } from '../../lib/reservationDate.ts';
 
 const fields = new Set(['name', 'phone', 'email', 'reservationDate', 'reservationTime', 'guestCount', 'message']);
-const amsterdamDate = new Intl.DateTimeFormat('en-CA', {
-  timeZone: 'Europe/Amsterdam', year: 'numeric', month: '2-digit', day: '2-digit',
-});
-
-function todayInAmsterdam(now: Date): string {
-  const parts = amsterdamDate.formatToParts(now);
-  const part = (type: string) => parts.find((value) => value.type === type)!.value;
-  return `${part('year')}-${part('month')}-${part('day')}`;
-}
 
 export function validateReservation(input: unknown, now = new Date()): ReservationValidationResult {
   if (!input || typeof input !== 'object' || Array.isArray(input)) {
@@ -63,17 +55,8 @@ export function validateReservation(input: unknown, now = new Date()): Reservati
   }
 
   if (!errors.reservationDate) {
-    const date = new Date(`${reservationDate}T12:00:00Z`);
-    if (!/^[1-9]\d{3}-\d{2}-\d{2}$/.test(reservationDate)
-      || Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== reservationDate) {
-      errors.reservationDate = 'Vul een geldige datum in (JJJJ-MM-DD).';
-    } else if (reservationDate < todayInAmsterdam(now)) {
-      errors.reservationDate = 'Kies vandaag of een toekomstige datum.';
-    } else if (date.getUTCDay() === 1) {
-      errors.reservationDate = 'Turuncu is op maandag gesloten.';
-    } else if (date.getUTCDay() === 0) {
-      errors.reservationDate = 'Turuncu is op zondag gesloten.';
-    }
+    const dateError = reservationDateError(reservationDate, now);
+    if (dateError) errors.reservationDate = dateError;
   }
 
   if (!errors.reservationTime) {

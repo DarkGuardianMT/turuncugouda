@@ -25,6 +25,7 @@
 - Keep database access server-only; never expose credentials through `PUBLIC_` variables.
 - Use parameterized queries and keep validation/service logic reusable outside HTTP routes.
 - Public APIs must not expose reservation records or internal database errors; new requests start as `pending`.
+- Public reservation UI must describe submissions as requests awaiting Turuncu confirmation, never as confirmed bookings.
 - Keep migrations non-destructive unless explicitly authorized otherwise; never reset unrelated data.
 - Do not log reservation payloads or unnecessary personal data.
 

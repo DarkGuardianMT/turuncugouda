@@ -3,10 +3,11 @@
 The new website for Turuncu Café en Bakkerij in Gouda. This project is under
 active development; the homepage now has a responsive visual foundation with
 real Turuncu branding and photography. The gallery has an initial photo grid;
-verified contact details and opening hours are included. Online reservations remain
-in development. The digital menu is available at `/menu`, with some prices still
-awaiting owner confirmation. The Reserveer button currently
-leads to Contact for phone or Instagram reservations.
+verified contact details and opening hours are included. `/reserveren` now accepts
+reservation requests through the runtime API; successful requests await Turuncu's
+confirmation. The digital menu is available at `/menu`, with some prices still
+awaiting owner confirmation. Reserveer links to the form, while phone and Instagram
+remain alternatives. Nothing has been deployed by this checkpoint.
 
 ## Stack and prerequisites
 
@@ -143,9 +144,12 @@ same-day requests have no additional lead-time or High Tea rule.
 
 Success returns HTTP 201 with `{ "success": true, "reservationId": 123,
 "status": "pending" }`. `createReservation` takes validated/normalized data and
-always inserts the literal `pending` using prepared parameters. Future form and
-chatbot callers must use the same validator and service. Unknown fields (including
-status, IDs, and timestamps) are rejected. No public read/list endpoint exists.
+always inserts the literal `pending` using prepared parameters. The public form
+uses this API; future chatbot callers must reuse the same validator and service.
+Unknown fields (including status, IDs, and timestamps) are rejected. The optional
+transport-only `contact_url` honeypot is removed before reservation validation;
+nonempty or non-string values return a generic 400 `INVALID_REQUEST` without
+creating a row or describing the trap. No public read/list endpoint exists.
 
 Validation returns 400 with `error.code: "VALIDATION_ERROR"` and `error.fields`;
 malformed JSON returns 400, unsupported content types 415, bodies above the 16 KiB
@@ -162,12 +166,43 @@ Check `10:00`, `16:29`, and a time such as `13:31` succeed. Query the test row u
 your local database client, then delete **only its returned ID**, with a
 parameterized query; do not clear the table. Do not use real customer data in tests.
 
-The `/reserveren` phone/Instagram/Contact fallback remains unchanged. The form,
-admin/authentication, email, chatbot, and capacity management are later checkpoints.
-Before public submissions go live, define rate limiting, optional honeypot/CAPTCHA
-if abuse warrants it, same-origin/CSRF handling for the form and future authenticated
-admin, and privacy, retention, and deletion policy. The current API is an
-unauthenticated foundation and is not deployed by this checkpoint.
+### Public reservation form
+
+`/reserveren` uses native controls and a small vanilla TypeScript enhancement to
+POST JSON. Successful submissions require runtime DB configuration. Name and phone
+are required; email and message remain optional. The date minimum and immediate
+closed-day feedback share pure Amsterdam date helpers with server validation.
+Desired times are 30-minute options from 10:00 through 16:00, not live availability;
+the backend still accepts any valid minute before 16:30. No capacity or High Tea
+rule is added. Server field errors remain authoritative.
+
+The form locks submission during a request, associates inline errors with controls,
+and replaces itself with a request-received panel on HTTP 201. Personal fields
+are reset, the summary contains only date/time/party size, and no database ID is
+displayed. Requests remain pending until Turuncu confirms them. No automatic
+confirmation, email, or admin workflow is implemented. Without JavaScript the
+form stays disabled to prevent accidental non-JSON submission; phone, Instagram,
+and Contact remain usable. A concise purpose-of-use note is shown near Submit.
+
+The endpoint rejects supplied `Origin` values that differ from the request URL's
+origin, including mismatched local ports, and rejects `Sec-Fetch-Site: cross-site`.
+Origin-less non-browser clients remain supported. No CORS permissions are added;
+this is not authentication or spam prevention. Before deployment, ensure the
+trusted reverse proxy preserves the external host/scheme and verify real HTTPS
+same-origin submissions. The installed Node adapter normalizes unlisted request
+hosts to localhost: use `localhost` for built local verification. Production must
+explicitly permit the canonical host via `security.allowedDomains`, and verify
+the request URL scheme after HTTPS termination. These deployment-specific settings
+remain a launch prerequisite; the form fails closed on an Origin mismatch.
+Do not add ad-hoc trust in arbitrary forwarded headers;
+review Astro's [proxy/security configuration](https://docs.astro.build/en/reference/configuration-reference/#securityalloweddomains)
+when the Hostinger setup is known.
+
+Real production rate limiting remains required before public launch. This
+checkpoint intentionally adds no in-memory/distributed limiter or CAPTCHA.
+Assess additional spam protection if needed, define privacy/retention/deletion
+policy, and review future authenticated admin CSRF handling. Admin, email,
+chatbot, capacity management, and deployment remain later checkpoints.
 
 ## Deployment direction
 

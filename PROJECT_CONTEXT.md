@@ -4,7 +4,7 @@
 
 This is a complete rebuild of the website for Turuncu Café en Bakkerij in Gouda:
 https://www.turuncugouda.com/. The site will present the business, its menu and
-products, photos, and practical visit information, with reservations planned later.
+products, photos, practical visit information, and a public reservation-request form.
 
 The existing site's source code and hosting are inaccessible. We are rebuilding
 from scratch in the existing GitHub repository, preserving its Git history.
@@ -48,18 +48,18 @@ Homepage `/`:
 
 Separate pages: `/menu` for the digital menu and `/galerij` for the photo collection.
 
-Future reservation functionality: `/reserveren` (currently a placeholder route).
+Reservation requests: `/reserveren`, connected to the existing create-only API.
 
 Existing bakery/product promotional sections may be removed, merged, or redesigned;
 those decisions are not final. The homepage now includes structural versions of
 these sections with real branding, photography, and approved business copy.
 Empty extra-content and Instagram-feed placeholders have been removed for now.
-`/galerij` has a captioned responsive photo grid and an accessible lightbox; `/reserveren` remains
-a placeholder without reservation functionality.
+`/galerij` has a captioned responsive photo grid and an accessible lightbox;
+`/reserveren` accepts requests awaiting confirmation by Turuncu.
 
 Current shared navigation: Menu → `/menu`, Over ons → `/#over-ons`,
-Galerij → `/galerij`, Contact → `/#contact`, and Reserveer → `/#contact`.
-The hero's visit link also targets Contact. `/menu` and `/galerij` have visible active states
+Galerij → `/galerij`, Contact → `/#contact`, and Reserveer → `/reserveren`.
+The hero's visit link still targets Contact. `/menu`, `/galerij`, and Reserveer have visible active states
 with `aria-current="page"`; no scroll-spy is used for homepage anchors.
 
 ## Design direction
@@ -145,7 +145,7 @@ above the portrait subject's head, without changing source assets.
 Both menu PNGs remain unchanged source/reference assets and are not displayed as
 the menu UI. The supplied manual extraction, with publication corrections provided
 by the user, is now implemented as the first structured digital menu. Gallery pagination,
-CMS, and the public reservation form remain deferred.
+and CMS remain deferred; the public reservation form is now connected separately.
 
 ### Digital menu
 
@@ -189,8 +189,8 @@ No large images are preloaded. Thumbnails retain responsive Astro Image output.
 
 The foundation uses a create-only `POST /api/reservations` runtime endpoint,
 reusable pure validation, and `src/server/reservations/reservationService.ts`.
-Future `/reserveren` form and AI chatbot callers must share this validation and
-service rather than duplicating business rules or connecting directly to MySQL.
+The `/reserveren` form uses this API; future AI chatbot callers must share the
+validation and service rather than duplicating business rules or connecting directly to MySQL.
 The service takes validated/normalized data, uses prepared parameters, returns
 only ID/status, and always inserts `pending`. Statuses are `pending`, `confirmed`,
 and `cancelled`; public clients cannot choose status or database-managed fields.
@@ -219,12 +219,44 @@ optional; unexpected fields are rejected. Requests have a 16 KiB technical body
 limit and JSON-only transport. Internal errors and reservation PII are not returned
 or logged. No permissive CORS configuration is added.
 
-The public form is not connected. Reserveer still leads to Contact, while
-`/reserveren` retains the verified phone, Instagram, and Contact fallback.
-Admin/authentication, email notifications, capacity rules, and chatbot implementation
-are deferred. Rate limiting/spam protection and form origin/CSRF handling must be
-addressed before or during public-form production launch. Privacy, data retention,
-and deletion policy remain production decisions.
+### Public reservation form
+
+`/reserveren` uses a semantic form and focused vanilla TypeScript. It POSTs the
+existing JSON contract, maps authoritative server field errors to native controls,
+prevents simultaneous submission, and replaces the form with a received-request
+panel on HTTP 201. Personal fields are reset; the summary contains date, desired
+time, and party size only. A successful request remains `pending`, never automatically
+confirmed or guaranteed a table. A new-request action starts with empty fields.
+
+The UI offers 30-minute desired-time options from 10:00 through 16:00. Backend
+minute rules remain unchanged. Pure helpers in `src/lib/reservationDate.ts` share
+Amsterdam date/minimum and closed-day feedback with server validation. Email and
+message remain optional. No restaurant capacity, special High Tea rule, or response
+time is invented; High Tea conditions remain separate and need owner confirmation.
+
+The header Reserveer CTA and homepage primary reservation action now link to
+`/reserveren`; ordinary Contact links retain their destination. Verified phone,
+Instagram, and Contact alternatives remain usable without JavaScript. Before
+enhancement the fieldset is disabled, preventing accidental non-JSON submissions.
+A concise data-use note is shown beside Submit, without inventing a full privacy policy.
+
+The transport-only `contact_url` honeypot is hidden, unfocusable, and excluded from
+reservation data. Empty/absent values reach normal validation; filled or mistyped
+values receive a generic 400 `INVALID_REQUEST` before creation, without describing
+the trap. Status/ID/timestamp injection remains rejected. The API rejects a supplied
+Origin that differs from the request URL's origin and cross-site fetch metadata;
+Origin-less non-browser clients remain supported. No CORS permissions are added
+by the application. Hostinger must preserve the external host/scheme through its
+trusted proxy, and real HTTPS same-origin requests must be verified before launch.
+The installed Node adapter normalizes unlisted hosts to localhost; standalone
+local checks use localhost. Configure the canonical allowed host and verify URL
+scheme reconstruction after TLS termination when hosting is known. Until then,
+Origin mismatches fail closed; no arbitrary forwarded-header trust is introduced.
+
+Production rate limiting remains required before public launch; no in-memory or
+distributed limiter or CAPTCHA is added. Admin confirmation/authentication, email,
+capacity management, and chatbot implementation are deferred. Privacy, retention,
+deletion, and any further spam protection remain production decisions.
 
 ## Hosting and deployment direction
 
@@ -250,7 +282,7 @@ implemented or selected for it yet.
 
 - Vue integration, React, Tailwind, UI/component and animation libraries
 - Sanity or another CMS, Supabase, and unrelated backend/API services
-- Public reservation form, admin/authentication, capacity management, and email notifications
+- Admin/authentication, capacity management, and email notifications
 - Owner confirmation of remaining menu prices/product wording and High Tea conditions
 - AI chatbot implementation
 
@@ -259,8 +291,8 @@ implemented or selected for it yet.
 Public-facing frontend v1 feature implementation is functionally complete after
 the focused polish checkpoint of 15 October 2026. Browser acceptance of this pass
 and the remaining owner content confirmations are still outstanding. Phase 2 now
-includes the reservation backend foundation; public form, admin, email, CMS,
-deployment, and chatbot remain separate future tasks.
+includes the verified reservation backend and connected public request form;
+admin, email, CMS, deployment, and chatbot remain separate future tasks.
 
 - Official minimal Astro starter incorporated in the existing repository root.
 - Existing README identity and Git history preserved; README expanded for developers.
@@ -275,7 +307,7 @@ deployment, and chatbot remain separate future tasks.
 - `/menu` renders the supplied structured menu with grouped anchor navigation,
   variant/supplement prices, and intentionally omitted unconfirmed prices.
 - `/galerij` has category filters, 13 captioned photos and a native accessible lightbox, a neutral
-  Dutch introduction, and the shared layout. `/reserveren` remains a clearly marked placeholder.
+  Dutch introduction, and the shared layout. `/reserveren` now has the public request form.
 - Reusable `src/layouts/BaseLayout.astro`, `SiteHeader`, `SiteFooter`, and `Section`
   components, plus shared `Brand` and `PhotoGrid`, global CSS patterns, and local data.
 - Mobile-first layouts stack on small screens and use grids at wider widths.
@@ -400,6 +432,35 @@ deployment, and chatbot remain separate future tasks.
 - No production deployment, public form connection, admin, authentication, email,
   or chatbot implementation is included.
 
+## Public reservation form verification (17 October 2026)
+
+- No dependencies added. Astro/type checks pass without diagnostics; all 65 native
+  Node tests pass, retaining the original 40 validation/configuration tests.
+  New tests cover transport guards and the actual form controller with DOM stubs:
+  inline errors/focus, date feedback, payload mapping, submission locking, reset,
+  success summary, new request, server errors, network failure, and malformed responses.
+  These automated controller checks do not replace browser verification.
+- Build succeeds with the same four prerendered pages and 69 optimized image outputs.
+  Standalone HTTP checks cover every route/linked asset, actual form labels and
+  required/optional attributes, autocomplete, described errors, 13 desired-time
+  choices, disabled no-JS submission, confirmation wording, navigation/CTAs, and
+  existing gallery filter/lightbox markup. Safely invalid runtime DB configuration
+  returns a generic 500 without internal details; production responses add no CORS.
+- Real local XAMPP MariaDB integration returns HTTP 201 for a same-origin public-form
+  payload and stores normalized values/timestamps with status pending. Invalid
+  dates, closed days, contact fields, status/ID injection, honeypots, and wrong
+  origins create no additional rows. Each temporary successful row is deleted only
+  by its returned ID with a matching test marker; removal is verified. Existing
+  schema, migration history, credentials, and unrelated databases are retained.
+- Actual rendering at 320/375/768/1440px, browser keyboard navigation, focus visibility,
+  native control behavior, and gallery/header interaction regression remain pending:
+  no browser surfaces are exposed and opening Chrome is unavailable. CSS stacks
+  controls on small screens, uses native controls and 48px targets, and preserves
+  existing tokens, focus styling, and shared navigation logic.
+- No admin/authentication, email/SMS, automatic confirmation, capacity scheduling,
+  chatbot, CMS, or deployment is included. Production rate limiting, host/HTTPS
+  proxy verification, and privacy/retention policy remain launch requirements.
+
 ## Near-term roadmap
 
 1. Confirm remaining Smoothies/Softies prices, product wording, High Tea conditions,
@@ -407,8 +468,8 @@ deployment, and chatbot remain separate future tasks.
 2. Refine homepage sections, anchor navigation, and responsive design direction.
 3. Refine the homepage, digital menu, and gallery incrementally using local data.
 4. Confirm Hostinger capabilities and establish the GitHub deployment workflow.
-5. Verify the reservation foundation against a local MySQL/MariaDB database, then
-   connect the public form in a separate checkpoint with launch safeguards.
+5. Verify the public form in a browser, confirm reservation operations with the
+   owner, and add production rate limiting and privacy safeguards before launch.
 
 ## Important unresolved decisions
 
