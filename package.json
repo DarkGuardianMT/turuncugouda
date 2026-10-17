@@ -11,10 +11,15 @@
     "check": "astro check",
     "build": "astro build",
     "preview": "astro preview",
+    "start": "node ./dist/server/entry.mjs",
+    "db:migrate": "node --env-file-if-exists=.env scripts/migrate.mjs",
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
     "astro": "astro"
   },
   "dependencies": {
-    "astro": "^7.3.6"
+    "@astrojs/node": "^11.1.8",
+    "astro": "^7.3.6",
+    "mysql2": "^3.24.6"
   },
   "allowScripts": {
     "esbuild": true

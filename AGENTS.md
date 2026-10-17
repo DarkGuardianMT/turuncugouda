@@ -20,6 +20,14 @@
 - Do not add Vue until a feature genuinely benefits from it. If added, use focused interactive islands rather than automatically rewriting the site as a client-side SPA.
 - Keep future `/galerij` and `/reserveren` requirements in mind without implementing them prematurely.
 
+## Reservation backend
+
+- Keep database access server-only; never expose credentials through `PUBLIC_` variables.
+- Use parameterized queries and keep validation/service logic reusable outside HTTP routes.
+- Public APIs must not expose reservation records or internal database errors; new requests start as `pending`.
+- Keep migrations non-destructive unless explicitly authorized otherwise; never reset unrelated data.
+- Do not log reservation payloads or unnecessary personal data.
+
 ## Styling
 
 - Use plain CSS for now and reusable CSS variables for colors, spacing, typography, and other design tokens.

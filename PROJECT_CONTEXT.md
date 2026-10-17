@@ -20,7 +20,10 @@ not the goal. The gallery will be one of the largest new features.
 ## Current architecture decisions
 
 - Current stable Astro, strict TypeScript, npm, and plain CSS.
-- Static output for the current foundation; no hosting adapter is required now.
+- `output: 'static'` keeps public content prerendered. The official `@astrojs/node`
+  standalone adapter provides runtime execution for `POST /api/reservations`,
+  which opts out with `prerender = false`; no deprecated hybrid mode is used.
+- MySQL/MariaDB via `mysql2/promise`; production direction is Hostinger MySQL.
 - Prefer Astro components for content; add client JavaScript only for real interaction needs.
 - Vue may be added later for focused interactive islands when justified.
 - Hybrid navigation: main business content on `/` with anchor navigation,
@@ -142,7 +145,7 @@ above the portrait subject's head, without changing source assets.
 Both menu PNGs remain unchanged source/reference assets and are not displayed as
 the menu UI. The supplied manual extraction, with publication corrections provided
 by the user, is now implemented as the first structured digital menu. Gallery pagination,
-CMS, and reservation functionality remain deferred.
+CMS, and the public reservation form remain deferred.
 
 ### Digital menu
 
@@ -162,8 +165,8 @@ editable numeric per-person prices and a separate 48-hour reservation note.
 Seven unconfirmed Smoothies/Softies prices are stored as `null` and omitted from
 visitor-facing output, without placeholder text or guessed prices. Confirm those
 prices, the name “Warme sinass”, and current High Tea conditions with the owner.
-No CMS, extra client-side menu JavaScript, backend, email address, or WhatsApp-only
-instruction is added; verified Contact remains authoritative.
+No CMS, extra client-side menu JavaScript, email address, or WhatsApp-only
+instruction is added to the menu; verified Contact remains authoritative.
 
 ### Gallery interaction
 
@@ -182,25 +185,58 @@ Astro generates larger WebP versions capped at 1600px and source resolution;
 their URLs are data attributes, assigned to the modal image only when requested.
 No large images are preloaded. Thumbnails retain responsive Astro Image output.
 
-## Future reservation system
+## Reservation backend foundation — Phase 2
 
-Plan an integrated experience inside the website, likely at `/reserveren`.
-It may later need server endpoints, a database, and email notifications.
-None is implemented now. When requirements are confirmed, reconsider rendering,
-adapter/runtime, and hosting capabilities while retaining static content where possible.
-For now, Reserveer leads to Contact and visitors are directed to reserve by phone
-or Instagram. `/reserveren` is retained only for the future integrated system,
-is not linked in the main navigation, and does not claim online booking is available.
-It now explains that online booking will come later and provides the current
-phone, Instagram, and Contact fallback actions using verified shared contact data.
+The foundation uses a create-only `POST /api/reservations` runtime endpoint,
+reusable pure validation, and `src/server/reservations/reservationService.ts`.
+Future `/reserveren` form and AI chatbot callers must share this validation and
+service rather than duplicating business rules or connecting directly to MySQL.
+The service takes validated/normalized data, uses prepared parameters, returns
+only ID/status, and always inserts `pending`. Statuses are `pending`, `confirmed`,
+and `cancelled`; public clients cannot choose status or database-managed fields.
+There is no public reservation list/read endpoint.
+
+`src/server/db/pool.ts` creates a lazy, reusable mysql2 Promise pool guarded by
+`astro:env/server`. DB configuration is checked only on use, so static builds
+need no credentials or active database. Server-side `DB_HOST`, `DB_PORT`, `DB_NAME`,
+`DB_USER`, and nonempty `DB_PASSWORD` are required; `DB_CONNECTION_LIMIT` defaults
+to 5. `.env.example` has placeholders only. Never use public database variables.
+
+Versioned single-statement SQL lives in `db/migrations/`; the first migration
+creates reservations with contact details, date/time, guest count, message,
+status, timestamps, and nonunique date/time and status indexes. `npm run db:migrate`
+uses a small Node runner, filename/checksum history in `schema_migrations`, and a
+database-scoped advisory lock. It neither creates/drops databases nor resets data.
+DDL implicitly commits: interrupted migrations require schema/history inspection,
+not an automatic reset. README contains local setup and recovery guidance.
+
+Validation trims text, lowercases optional email, and preserves phone formatting.
+Dates must be real, non-past dates in Europe/Amsterdam and Tuesday–Saturday.
+Times are `>= 10:00` and `< 16:30` with no enforced slot interval or extra lead time.
+Guest count is an integer 1–65535 (SQL storage limit, not confirmed capacity).
+Name/phone/email/message maxima are 120/32/254/1000 characters. Email/message are
+optional; unexpected fields are rejected. Requests have a 16 KiB technical body
+limit and JSON-only transport. Internal errors and reservation PII are not returned
+or logged. No permissive CORS configuration is added.
+
+The public form is not connected. Reserveer still leads to Contact, while
+`/reserveren` retains the verified phone, Instagram, and Contact fallback.
+Admin/authentication, email notifications, capacity rules, and chatbot implementation
+are deferred. Rate limiting/spam protection and form origin/CSRF handling must be
+addressed before or during public-form production launch. Privacy, data retention,
+and deletion policy remain production decisions.
 
 ## Hosting and deployment direction
 
 Use GitHub for version control. Hostinger is the intended deployment target,
-ideally connected to GitHub. The current application builds static output to `dist/`.
-The actual Hostinger plan, GitHub integration, and delivery workflow remain
-unconfirmed. No live deployment, hosting integration, or CI workflow is configured.
-Future reservations will require a separate decision about server/runtime support.
+ideally connected to GitHub. Production requires Hostinger Node hosting/runtime
+and Hostinger MySQL; the actual plan and delivery workflow remain unconfirmed.
+The build produces prerendered pages/assets in `dist/client/` and a standalone
+runtime in `dist/server/`; `npm start` runs its entry point. Production DB variables
+must be supplied at runtime, and migrations must run against the production
+database before submissions are enabled. Verify provider networking/TLS requirements
+before launch; no custom database TLS configuration is supplied yet. No live
+deployment, hosting integration, or CI workflow is configured by this task.
 
 ## Future AI chatbot
 
@@ -213,8 +249,8 @@ implemented or selected for it yet.
 ## Explicitly deferred technologies and features
 
 - Vue integration, React, Tailwind, UI/component and animation libraries
-- Sanity or another CMS, Supabase, databases, backend/API services
-- Reservation implementation, endpoints, and email notifications
+- Sanity or another CMS, Supabase, and unrelated backend/API services
+- Public reservation form, admin/authentication, capacity management, and email notifications
 - Owner confirmation of remaining menu prices/product wording and High Tea conditions
 - AI chatbot implementation
 
@@ -222,8 +258,9 @@ implemented or selected for it yet.
 
 Public-facing frontend v1 feature implementation is functionally complete after
 the focused polish checkpoint of 15 October 2026. Browser acceptance of this pass
-and the remaining owner content confirmations are still outstanding. Reservation
-backend, CMS, deployment, and chatbot work remain separate future tasks.
+and the remaining owner content confirmations are still outstanding. Phase 2 now
+includes the reservation backend foundation; public form, admin, email, CMS,
+deployment, and chatbot remain separate future tasks.
 
 - Official minimal Astro starter incorporated in the existing repository root.
 - Existing README identity and Git history preserved; README expanded for developers.
@@ -336,6 +373,33 @@ backend, CMS, deployment, and chatbot work remain separate future tasks.
   actual anchor clearance and overflow remain pending: no browser surfaces were
   exposed, and opening Chrome returned unavailable.
 
+## Reservation foundation verification (17 October 2026)
+
+- Dependencies: `@astrojs/node` 11.1.8 (Astro 7-compatible) and `mysql2` 3.24.6;
+  Astro remains 7.3.6. Installation audit reports no vulnerabilities.
+- Astro/type checks pass with zero errors, warnings, or hints. All 40 native Node
+  tests pass, covering normalization, field bounds/types, rejected managed fields,
+  opening hours, real dates, closed days, leap years, Amsterdam midnight boundaries,
+  same-day behavior, and lazy configuration validation.
+- Credential-free Node adapter build succeeds, prerenders the same four public
+  pages, and generates/reuses 69 optimized images. A temporary client-script import
+  of the actual reservation service fails the build on `astro:env/server`, as required;
+  the temporary page is removed after verification.
+- Built standalone HTTP checks pass for all four public routes and linked assets,
+  Dutch document language, main/H1 landmarks, unchanged reservation fallback, gallery
+  filter/lightbox markup and 13 image triggers. API checks cover invalid/missing JSON,
+  validation failures, managed-field rejection, body size, content type, unsupported
+  methods, absent permissive CORS, and generic missing-DB errors with no internal data.
+- No local DB variables or credentials were available. The migration command fails
+  clearly on missing `DB_HOST`; live SQL application/repeat-run, successful HTTP 201,
+  stored `pending` status, and targeted test-row cleanup remain unverified until a
+  dedicated empty database and local `.env` credentials are provided.
+- Frontend source/assets/styles are unchanged. Actual sticky-header, filter/lightbox
+  interaction and responsive browser regression remain pending: no browser surfaces
+  are exposed and opening Chrome returns unavailable.
+- No production deployment, public form connection, admin, authentication, email,
+  or chatbot implementation is included.
+
 ## Near-term roadmap
 
 1. Confirm remaining Smoothies/Softies prices, product wording, High Tea conditions,
@@ -343,7 +407,8 @@ backend, CMS, deployment, and chatbot work remain separate future tasks.
 2. Refine homepage sections, anchor navigation, and responsive design direction.
 3. Refine the homepage, digital menu, and gallery incrementally using local data.
 4. Confirm Hostinger capabilities and establish the GitHub deployment workflow.
-5. Define reservation requirements before choosing server, database, and email services.
+5. Verify the reservation foundation against a local MySQL/MariaDB database, then
+   connect the public form in a separate checkpoint with launch safeguards.
 
 ## Important unresolved decisions
 
@@ -351,7 +416,8 @@ backend, CMS, deployment, and chatbot work remain separate future tasks.
 - Remaining menu prices/product wording, High Tea conditions, and any future email contact
 - Final design tokens, gallery organization, and any additional high-resolution photo assets
 - Hostinger plan, GitHub deployment integration, and future server capabilities
-- Reservation functionality, operations, data model, and notification requirements
+- Reservation operations/capacity, public-form launch safeguards, retention policy,
+  admin workflow, and notification requirements
 
 Update this document whenever significant architecture, scope, feature, or status
 decisions change.
