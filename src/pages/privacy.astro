@@ -1,0 +1,42 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { site } from '../data/site';
+---
+
+<BaseLayout title={`Privacy | ${site.name}`} description="Lees hoe Turuncu de gegevens van je reserveringsaanvraag gebruikt en bewaart, en hoe je contact kunt opnemen met een privacyvraag.">
+  <main id="main-content" class="section privacy-page" tabindex="-1">
+    <div class="container privacy-content">
+      <header>
+        <h1>Privacy</h1>
+        <p class="intro">Bij Turuncu gaan we zorgvuldig om met de gegevens die je via onze website deelt.</p>
+        <p>Hier lees je hoe we omgaan met gegevens uit het <a href="/reserveren">reserveringsformulier</a>.</p>
+      </header>
+      <section aria-labelledby="privacy-data">
+        <h2 id="privacy-data">Welke gegevens ontvangen we?</h2>
+        <p>Bij een reserveringsaanvraag vragen we om je naam, telefoonnummer, reserveringsdatum, gewenste tijd en aantal personen. Je kunt ook een e-mailadres en een opmerking invullen; deze velden zijn optioneel.</p>
+      </section>
+      <section aria-labelledby="privacy-purpose">
+        <h2 id="privacy-purpose">Waarvoor gebruiken we je gegevens?</h2>
+        <p>We gebruiken de gegevens om je reserveringsaanvraag te behandelen, waar nodig contact met je op te nemen over de reservering en de status van de aanvraag intern bij te houden.</p>
+        <p>Je aanvraag is pas definitief nadat Turuncu deze heeft bevestigd. De gegevens worden niet voor marketingdoeleinden gebruikt.</p>
+      </section>
+      <section aria-labelledby="privacy-storage">
+        <h2 id="privacy-storage">Gebruik en bewaring</h2>
+        <p>Reserveringsgegevens worden opgeslagen in het reserveringssysteem van Turuncu. Het overzicht met contactgegevens is alleen toegankelijk na inloggen in het beheer.</p>
+        <p>We bewaren reserveringsgegevens niet langer dan nodig is voor het afhandelen en administreren van de reservering. Bij het opruimen kunnen naam, contactgegevens en opmerkingen worden verwijderd, terwijl beperkte reserveringsinformatie behouden blijft.</p>
+      </section>
+      <section aria-labelledby="privacy-contact">
+        <h2 id="privacy-contact">Vragen over je gegevens?</h2>
+        <p>Heb je een vraag over het gebruik van je gegevens, of wil je gegevens laten aanpassen of verwijderen? Neem dan contact op met Turuncu via <a href={site.phoneHref}>{site.phone}</a> of spreek ons aan tijdens je bezoek.</p>
+        <address>{site.name}<br />{site.address}, {site.postalAddress}</address>
+      </section>
+    </div>
+  </main>
+</BaseLayout>
+
+<style>
+  .privacy-content { max-width: 48rem; overflow-wrap: anywhere; }
+  .privacy-content header, .privacy-content section { display: grid; gap: var(--space-2); }
+  .privacy-content section { margin-top: var(--space-5); }
+  .privacy-content h2 { font-size: clamp(1.5rem, 4vw, 2rem); }
+</style>

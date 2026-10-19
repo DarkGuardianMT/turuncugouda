@@ -2,6 +2,13 @@ export const statusLabels = { pending: 'In afwachting', confirmed: 'Bevestigd', 
 export type ReservationStatus = keyof typeof statusLabels;
 export type StatusFilter = ReservationStatus | 'all';
 
+export function reservationPersonalDetails(row: {
+  name: string | null; phone: string | null; email: string | null; message: string | null; is_anonymized: number;
+}) {
+  if (row.is_anonymized) return { name: 'Geanonimiseerd', phone: null, email: null, message: null };
+  return { name: row.name ?? 'Geanonimiseerd', phone: row.phone, email: row.email, message: row.message };
+}
+
 export function statusFilter(value: string | null): StatusFilter {
   return value === 'pending' || value === 'confirmed' || value === 'cancelled' ? value : 'all';
 }

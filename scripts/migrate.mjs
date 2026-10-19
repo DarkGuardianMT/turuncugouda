@@ -2,9 +2,12 @@ import { readdir, readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { createConnection } from 'mysql2/promise';
 import { DatabaseConfigurationError, readDatabaseConfig } from '../src/server/db/config.mjs';
+import { readMaintenanceDatabaseConfig } from '../src/server/db/maintenanceConfig.mjs';
 
 async function migrate() {
-  const config = readDatabaseConfig(process.env);
+  const args = process.argv.slice(2);
+  if (args.length && (args.length !== 1 || args[0] !== '--maintenance')) throw new Error('Use db:migrate [--maintenance]');
+  const config = args.length ? readMaintenanceDatabaseConfig(process.env) : readDatabaseConfig(process.env);
   const { connectionLimit, ...connectionConfig } = config;
   const connection = await createConnection(connectionConfig);
   const lockName = `turuncu_migrate_${createHash('sha256').update(config.database).digest('hex').slice(0, 40)}`;

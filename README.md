@@ -37,9 +37,11 @@ The development server normally runs at `http://localhost:4321`.
 | `npm run preview` | Preview the built site locally |
 | `npm start` | Run the built Node standalone server |
 | `npm run db:migrate` | Apply pending database migrations |
+| `npm run reservations:cleanup -- --before=YYYY-MM-DD` | Count old reservations eligible for anonymization; dry-run by default |
 | `npm test` | Run reservation, authentication, CSRF, and validation tests without a database |
 | `npm run admin:hash-password` | Interactively generate a salted admin password hash with hidden input |
 | `npm run test:admin-integration` | Opt-in local MariaDB/built-runtime verification; see admin setup below |
+| `npm run test:retention-integration` | Opt-in local cleanup/retention verification with explicit maintenance credentials |
 | `npm run astro -- --help` | Show Astro CLI help |
 
 Run `npm run build` before `npm run preview`. Preview is a local verification
@@ -109,7 +111,7 @@ and application timestamp in `schema_migrations`. Use zero-padded filenames and
 one SQL statement per migration. Applied files must remain unchanged; line-ending
 differences are ignored for checksums. The runner only operates within `DB_NAME`,
 does not create/drop databases, and never resets data. Migration credentials need
-CREATE/INDEX and migration-history SELECT/INSERT privileges; the application
+CREATE/ALTER/INDEX and migration-history SELECT/INSERT privileges; the application
 account needs INSERT and SELECT on `reservations`, plus UPDATE on its `status`
 column for admin actions. Separate migration credentials can be exported for the
 command, overriding `.env`.
@@ -296,6 +298,66 @@ and durable upstream rate limiting before launch. Privacy/retention/deletion rul
 remain unresolved. Future notifications may use Hostinger SMTP once available;
 database state remains authoritative and future email failure must not roll back a
 successful reservation/status update. No SMTP dependency or settings are added now.
+
+## Reservation privacy and manual retention maintenance
+
+`/privacy` describes reservation-data collection and use in Dutch and is linked
+from the reservation form and public footer. The exact retention period still
+requires owner approval before production launch. No automatic cleanup, cron,
+cookie banner, or notifications are added.
+
+Migration `002_allow_reservation_anonymization.sql` makes `name` and `phone`
+nullable and adds nullable `anonymized_at`. Public requests still require name and
+phone and start pending. Anonymization clears name, phone, email and message,
+marks the row, and preserves ID, visit date/time, guest count, status and creation
+time. The existing update timestamp records the change. Marked rows are skipped
+on later runs. Admin rendering uses “Geanonimiseerd” without contact links or
+messages; the current today/future view is retained.
+
+Maintenance shares `DB_HOST`, `DB_PORT`, `DB_NAME` and connection settings, but
+requires separate server-only `MAINTENANCE_DB_USER` and `MAINTENANCE_DB_PASSWORD`.
+It never falls back to the runtime account. Supply these privately in the process
+environment or ignored local configuration. Missing credentials fail closed.
+Only an explicitly supplied empty maintenance password is permitted for loopback
+database hosts; external maintenance connections require a nonempty password.
+The application account's nonempty-password requirement is unchanged.
+
+Use a maintenance account with SELECT and column-level UPDATE on `name`, `phone`,
+`email`, `message`, `anonymized_at` for the reservations table only. Do not broaden
+the runtime account, which only needs UPDATE(status). Neither DROP nor DELETE is
+needed by cleanup. Schema migrations require a separately privileged account with
+ALTER/CREATE/INDEX and migration-history SELECT/INSERT permissions; the migration
+runner can explicitly use the maintenance configuration:
+
+```sh
+npm run db:migrate -- --maintenance
+npm run reservations:cleanup -- --before=YYYY-MM-DD
+npm run reservations:cleanup -- --before=YYYY-MM-DD --apply
+```
+
+Replace `YYYY-MM-DD` with an explicitly reviewed cutoff. It is exclusive: only
+visits before it are eligible, in any reservation status. Today and future visits
+are always protected using Europe/Amsterdam, and future cutoffs are rejected.
+Today's date is allowed as an exclusive bound. There is no default age or period.
+Without `--apply` the command only counts; with it, one parameterized UPDATE clears
+the personal fields of matching, not-yet-anonymized rows. Output contains only mode,
+cutoff and count. Repeating it does not rewrite marked rows.
+
+Use this mechanism only after an owner-approved retention decision or a specifically
+reviewed maintenance need. Anonymization cannot be undone without a backup. Never
+apply against production without backup and review of the dry-run count/cutoff and
+the intended database. No row deletion, schema/migration-history modification,
+AUTO_INCREMENT reset or automatic schedule is performed by cleanup.
+
+After building, the opt-in `npm run test:retention-integration` requires
+`RETENTION_INTEGRATION_LOCAL=1` and explicitly configured local maintenance
+credentials, plus the existing runtime DB settings. Its test setup/cleanup needs
+INSERT/DELETE in addition to maintenance privileges; these are test-only needs,
+not permissions required by the cleanup command. It refuses to apply if unrelated
+eligible rows exist at its old test cutoff. It verifies real dry-run/apply behavior,
+idempotence, date protection, anonymized admin cards and public privacy links, then
+removes only its exact test IDs. Use a local database without concurrent writers.
+Do not run this test against production.
 
 ## Deployment direction
 

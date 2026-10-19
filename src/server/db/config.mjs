@@ -1,7 +1,7 @@
 export class DatabaseConfigurationError extends Error {}
 
-/** @param {Record<string, string | undefined>} environment */
-export function readDatabaseConfig(environment) {
+/** @param {Record<string, string | undefined>} environment @param {{allowEmptyPassword?: boolean}} [options] */
+export function readDatabaseConfig(environment, { allowEmptyPassword = false } = {}) {
   /** @param {string} key */
   function required(key) {
     const value = environment[key];
@@ -25,7 +25,7 @@ export function readDatabaseConfig(environment) {
     port: integer('DB_PORT', 65535),
     database: required('DB_NAME').trim(),
     user: required('DB_USER').trim(),
-    password: required('DB_PASSWORD'),
+    password: allowEmptyPassword && environment.DB_PASSWORD === '' ? '' : required('DB_PASSWORD'),
     connectionLimit: integer('DB_CONNECTION_LIMIT', 100, '5'),
     charset: 'utf8mb4',
     connectTimeout: 10000,

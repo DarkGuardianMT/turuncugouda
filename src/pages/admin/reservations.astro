@@ -2,7 +2,7 @@
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import { csrfToken } from '../../server/admin/auth';
 import { listReservations, type AdminReservation } from '../../server/reservations/adminService';
-import { statusFilter, statusLabels } from '../../server/reservations/adminLogic';
+import { reservationPersonalDetails, statusFilter, statusLabels } from '../../server/reservations/adminLogic';
 export const prerender = false;
 const { adminConfig: config, adminSession: session } = Astro.locals;
 if (!config || !session) return Astro.redirect('/admin/login', 303);
@@ -16,7 +16,7 @@ const notices = new Map([
 const notice = notices.get(Astro.url.searchParams.get('notice') ?? '');
 let reservations: AdminReservation[] = [];
 let failed = false;
-try { reservations = await listReservations(filter); }
+try { reservations = (await listReservations(filter)).map((row) => ({ ...row, ...reservationPersonalDetails(row) })); }
 catch { failed = true; Astro.response.status = 503; console.error('Admin reservation list failed: DATABASE_ERROR'); }
 const dateLabel = (date: string) => new Intl.DateTimeFormat('nl-NL', { dateStyle: 'long', timeZone: 'Europe/Amsterdam' }).format(new Date(`${date}T12:00:00Z`));
 const createdLabel = (timestamp: number) => new Intl.DateTimeFormat('nl-NL', {
@@ -50,7 +50,7 @@ const createdLabel = (timestamp: number) => new Intl.DateTimeFormat('nl-NL', {
           <dl class="admin-details">
             <div><dt>Naam</dt><dd>{reservation.name}</dd></div>
             <div><dt>Aantal personen</dt><dd>{reservation.guest_count}</dd></div>
-            <div><dt>Telefoon</dt><dd><a href={`tel:${reservation.phone.replace(/[^+0-9]/g, '')}`}>{reservation.phone}</a></dd></div>
+            <div><dt>Telefoon</dt><dd>{reservation.phone ? <a href={`tel:${reservation.phone.replace(/[^+0-9]/g, '')}`}>{reservation.phone}</a> : 'Niet beschikbaar'}</dd></div>
             {reservation.email && <div><dt>E-mail</dt><dd><a href={`mailto:${reservation.email}`}>{reservation.email}</a></dd></div>}
             <div><dt>Aangevraagd op</dt><dd><time datetime={new Date(Number(reservation.created_at) * 1000).toISOString()}>{createdLabel(reservation.created_at)}</time></dd></div>
           </dl>

@@ -325,6 +325,43 @@ are unchanged. Actual responsive rendering at 320/375/768/1440px, keyboard behav
 and header/gallery/form browser interactions remain unverified. An existing Astro
 development process was left running; the integration harness uses isolated built servers.
 
+## Reservation privacy and retention foundation (20 October 2026)
+
+- Public `/privacy` describes the actual reservation fields and their use for
+  request handling, contact and internal status management. The form note and
+  shared public footer link to it. No consent checkbox or cookie banner is added.
+- The exact retention period remains an owner decision before production launch.
+  No automatic cleanup, scheduled deletion or cron exists. Anonymization is
+  preferred over row deletion, retaining minimal reservation history.
+- Non-destructive migration 002 permits NULL name/phone and adds `anonymized_at`;
+  migration 001 is unchanged. Public validation still requires name/phone.
+- `npm run reservations:cleanup -- --before=YYYY-MM-DD` is count-only by default;
+  only `--apply` permits changes. The cutoff is mandatory and exclusive; future
+  cutoffs are rejected and SQL independently excludes today/future Amsterdam dates.
+  All old statuses can be processed. Name/phone/email/message become NULL, marked
+  rows are skipped, and operational fields/creation time remain. Logs contain counts
+  and cutoff only. No DELETE, reset or migration-history changes occur in cleanup.
+- Maintenance requires explicit `MAINTENANCE_DB_USER`/`MAINTENANCE_DB_PASSWORD`,
+  shares DB location settings, and never falls back to app credentials. A separate
+  least-privilege account needs SELECT and UPDATE of the personal columns and marker.
+  Explicit empty maintenance passwords are allowed only for local loopback hosts.
+  Runtime credentials and privileges remain unchanged. `db:migrate -- --maintenance`
+  supports a separately privileged schema-maintenance connection.
+- Admin rendering suppresses all contact/message fields on marked rows and uses
+  “Geanonimiseerd”; no archive, per-record cleanup or deletion UI is introduced.
+- SMTP, deployment, durable production rate limiting and a concrete production
+  retention policy remain separate work. Privacy copy must reflect actual use.
+
+Verification: migration 002 applied locally through the existing runner and a
+second run skipped both migrations. All 86 native Node tests pass, including the
+previous 78. Astro/type checks have no diagnostics; the build prerenders five
+public pages. Real local CLI tests prove no-change dry-run, selective anonymization,
+exclusive cutoff/today/future protection and idempotence. Admin cards handle cleared
+personal data, and public creation still starts pending. Tests remove only their
+created IDs and restore the starting count. Existing app grants, `.env`, unrelated
+rows and preexisting migration history remain intact. Browser verification at
+320/375/768/1440px remains pending because Chrome tooling is unavailable.
+
 ## Hosting and deployment direction
 
 Use GitHub for version control. Hostinger is the intended deployment target,

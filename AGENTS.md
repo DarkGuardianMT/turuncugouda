@@ -30,6 +30,7 @@
 - Do not log reservation payloads or unnecessary personal data.
 - Admin reservation data requires server-side authentication; authenticated mutations require CSRF and same-origin checks.
 - Never log or commit admin credentials/session secrets. Validate status transitions and check the expected current status.
+- Reservation cleanup must remain manual and dry-run by default, with an explicit cutoff and no PII in logs. An automatic retention rule requires owner approval.
 
 ## Styling
 
