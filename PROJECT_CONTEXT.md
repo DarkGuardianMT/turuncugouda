@@ -22,7 +22,7 @@ not the goal. The gallery will be one of the largest new features.
 - Current stable Astro, strict TypeScript, npm, and plain CSS.
 - `output: 'static'` keeps public content prerendered. The official `@astrojs/node`
   standalone adapter provides runtime execution for `POST /api/reservations`,
-  which opts out with `prerender = false`; no deprecated hybrid mode is used.
+  which opts out with `prerender = false`; admin pages/actions do likewise. No deprecated hybrid mode is used.
 - MySQL/MariaDB via `mysql2/promise`; production direction is Hostinger MySQL.
 - Prefer Astro components for content; add client JavaScript only for real interaction needs.
 - Vue may be added later for focused interactive islands when justified.
@@ -253,10 +253,74 @@ local checks use localhost. Configure the canonical allowed host and verify URL
 scheme reconstruction after TLS termination when hosting is known. Until then,
 Origin mismatches fail closed; no arbitrary forwarded-header trust is introduced.
 
-Production rate limiting remains required before public launch; no in-memory or
-distributed limiter or CAPTCHA is added. Admin confirmation/authentication, email,
-capacity management, and chatbot implementation are deferred. Privacy, retention,
+Production rate limiting remains required before public launch; the public API has
+no in-memory/distributed limiter or CAPTCHA. The separate admin workflow below has
+a local login safeguard. Email, capacity management, and chatbot implementation
+are deferred. Privacy, retention,
 deletion, and any further spam protection remain production decisions.
+
+## Minimal local reservation admin (19 October 2026)
+
+- `/admin/login` and `/admin/reservations` are runtime-rendered Astro pages, with
+  POST-only login/logout/status endpoints under `/admin`. Public content remains
+  prerendered; no reservation records are included in static output or a public list API.
+- One administrator is configured with server-only `ADMIN_USERNAME`,
+  `ADMIN_PASSWORD_HASH`, and `ADMIN_SESSION_SECRET`. Node scrypt uses N=32768/r=8/p=1,
+  a random 32-byte salt and 64-byte key. `npm run admin:hash-password` prompts twice
+  with hidden terminal input and emits the encoded hash; no plaintext is stored.
+  The format `scrypt:32768:8:1:<salt-hex>:<key-hex>` avoids Astro/Vite dollar expansion
+  and works unchanged in the shared `.env` with Node's env-file loader.
+- Authentication uses HMAC-SHA256 signed HttpOnly, SameSite=Strict cookies scoped
+  to `/admin`, expiring after ten hours. Secure is required in production/HTTPS;
+  local development HTTP works. Identity/hash/secret changes invalidate sessions.
+  Logout expires the browser cookie. There is no session registry: copied cookies
+  remain valid until expiry or credential rotation.
+- Every protected request validates the session. Admin POSTs require exact Origin
+  checking shared with the public API (which retains its Origin-less client support).
+  Authenticated mutations additionally require a signed, session-bound CSRF token.
+  Login has a bounded in-memory five-attempt/15-minute safeguard per adapter client
+  address. It resets on restart, is not shared across instances, and is not
+  production-grade rate limiting.
+- The focused admin service reuses the existing pool and parameterized queries.
+  Cards list today/future dates using Europe/Amsterdam, ordered by visit date/time
+  then creation time. Creation timestamps are converted from SQL epoch values and
+  displayed in Amsterdam time. Validated query filters support all three statuses.
+  Contact links and escaped plain-text messages are included.
+- Allowed transitions are pending → confirmed/cancelled and confirmed → cancelled.
+  Updates compare the expected current status and report stale submissions. Statuses
+  remain pending/confirmed/cancelled; cancelled rows are retained. No deletion UI,
+  schema migration, notifications, scheduling, roles, registration, or recovery exists.
+- Admin responses are no-store/noindex/nofollow, suppress referrers and framing,
+  and contain no reservation PII in metadata. Configuration/DB errors fail safely;
+  logs avoid credentials, SQL and customer payloads. The application account needs
+  SELECT/INSERT and UPDATE(status); DELETE is only for explicit local test cleanup.
+- README documents setup and opt-in `npm run test:admin-integration`, which uses
+  temporary credentials only in child-process memory and exact-ID/marker cleanup.
+  Existing local `.env` credentials are preserved; manual login requires setting
+  a chosen password through the helper. No real admin credentials are committed.
+- Email/SMS remain absent; the owner must contact guests separately. Future
+  notifications may use Hostinger SMTP once available. Database state is authoritative;
+  future notification failure must not roll back successful writes. No SMTP package
+  or configuration has been added.
+- Production authentication, durable upstream rate limiting, HTTPS/Secure cookies,
+  canonical hosts, reverse-proxy Origin/client-IP handling, and privacy/retention
+  policy still require review before deployment. Browser acceptance remains pending
+  because no browser surface is available and Chrome creation fails in this session.
+
+Verification for this checkpoint: Astro/type checks have zero diagnostics; all
+77 native Node tests pass, including the original 65 public reservation tests.
+Credential-free build succeeds with four static public pages and no admin HTML.
+Local MariaDB/built-runtime checks pass for authentication, cookie flags, CSRF,
+safe configuration/database failures, escaped messages, date/status filters,
+public creation remaining pending, honeypot/Origin/managed-field rejection,
+confirm, stale update refusal, cancel, logout, and the local login limiter.
+Only UPDATE(status) on turuncugouda.reservations was added to the existing local
+application account with user authorization; SHOW GRANTS and a no-match UPDATE
+verified it. Temporary records are removed by exact ID/test marker and the starting
+row count is restored. Local `.env`, existing rows, schema and migration history
+are unchanged. Actual responsive rendering at 320/375/768/1440px, keyboard behavior,
+and header/gallery/form browser interactions remain unverified. An existing Astro
+development process was left running; the integration harness uses isolated built servers.
 
 ## Hosting and deployment direction
 
@@ -282,7 +346,7 @@ implemented or selected for it yet.
 
 - Vue integration, React, Tailwind, UI/component and animation libraries
 - Sanity or another CMS, Supabase, and unrelated backend/API services
-- Admin/authentication, capacity management, and email notifications
+- Capacity management and email notifications
 - Owner confirmation of remaining menu prices/product wording and High Tea conditions
 - AI chatbot implementation
 
@@ -292,7 +356,8 @@ Public-facing frontend v1 feature implementation is functionally complete after
 the focused polish checkpoint of 15 October 2026. Browser acceptance of this pass
 and the remaining owner content confirmations are still outstanding. Phase 2 now
 includes the verified reservation backend and connected public request form;
-admin, email, CMS, deployment, and chatbot remain separate future tasks.
+the minimal local admin workflow is implemented. Email, CMS, deployment, and chatbot
+remain separate future tasks.
 
 - Official minimal Astro starter incorporated in the existing repository root.
 - Existing README identity and Git history preserved; README expanded for developers.

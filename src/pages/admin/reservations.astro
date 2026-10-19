@@ -1,0 +1,69 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { csrfToken } from '../../server/admin/auth';
+import { listReservations, type AdminReservation } from '../../server/reservations/adminService';
+import { statusFilter, statusLabels } from '../../server/reservations/adminLogic';
+export const prerender = false;
+const { adminConfig: config, adminSession: session } = Astro.locals;
+if (!config || !session) return Astro.redirect('/admin/login', 303);
+const csrf = csrfToken(session, config);
+const filter = statusFilter(Astro.url.searchParams.get('status'));
+const notices = new Map([
+  ['updated', 'De status is bijgewerkt. Neem zelf contact op met de gast; er is geen bericht verstuurd.'],
+  ['stale', 'Deze aanvraag is inmiddels gewijzigd of niet meer beschikbaar. Bekijk de actuele gegevens hieronder.'],
+  ['error', 'Bijwerken is tijdelijk niet mogelijk. Probeer het later opnieuw.'],
+]);
+const notice = notices.get(Astro.url.searchParams.get('notice') ?? '');
+let reservations: AdminReservation[] = [];
+let failed = false;
+try { reservations = await listReservations(filter); }
+catch { failed = true; Astro.response.status = 503; console.error('Admin reservation list failed: DATABASE_ERROR'); }
+const dateLabel = (date: string) => new Intl.DateTimeFormat('nl-NL', { dateStyle: 'long', timeZone: 'Europe/Amsterdam' }).format(new Date(`${date}T12:00:00Z`));
+const createdLabel = (timestamp: number) => new Intl.DateTimeFormat('nl-NL', {
+  dateStyle: 'medium', timeStyle: 'short', timeZone: 'Europe/Amsterdam',
+}).format(new Date(Number(timestamp) * 1000));
+---
+<AdminLayout title="Reserveringsaanvragen">
+  <div class="admin-toolbar">
+    <div><h1>Reserveringsaanvragen</h1><p>Vandaag en toekomstige dagen · tijdzone Europe/Amsterdam</p></div>
+    <form action="/admin/auth/logout" method="post">
+      <input type="hidden" name="csrf" value={csrf} />
+      <button class="button button-secondary" type="submit">Uitloggen</button>
+    </form>
+  </div>
+  <p class="admin-help">Een statuswijziging verstuurt geen e-mail of sms. Neem zelf contact op met de gast.</p>
+  <nav class="admin-filters" aria-label="Filter op status">
+    {(['all', 'pending', 'confirmed', 'cancelled'] as const).map((status) =>
+      <a href={`/admin/reservations?status=${status}`} aria-current={filter === status ? 'page' : undefined}>{status === 'all' ? 'Alle' : statusLabels[status]}</a>
+    )}
+  </nav>
+  {notice && <p class="admin-notice" role="status">{notice}</p>}
+  {failed ? <p class="admin-notice" role="alert">Reserveringen zijn tijdelijk niet beschikbaar. Probeer het later opnieuw.</p>
+    : reservations.length === 0 ? <p class="admin-panel">Geen reserveringen gevonden.</p>
+    : <ul class="admin-reservations" aria-label="Reserveringen">
+      {reservations.map((reservation) => <li>
+        <article class="admin-panel reservation-card">
+          <header class="admin-toolbar">
+            <h2><time datetime={`${reservation.reservation_date}T${reservation.reservation_time}`}>{dateLabel(reservation.reservation_date)} · {reservation.reservation_time}</time></h2>
+            <span class:list={['status-badge', `status-${reservation.status}`]}>{statusLabels[reservation.status]}</span>
+          </header>
+          <dl class="admin-details">
+            <div><dt>Naam</dt><dd>{reservation.name}</dd></div>
+            <div><dt>Aantal personen</dt><dd>{reservation.guest_count}</dd></div>
+            <div><dt>Telefoon</dt><dd><a href={`tel:${reservation.phone.replace(/[^+0-9]/g, '')}`}>{reservation.phone}</a></dd></div>
+            {reservation.email && <div><dt>E-mail</dt><dd><a href={`mailto:${reservation.email}`}>{reservation.email}</a></dd></div>}
+            <div><dt>Aangevraagd op</dt><dd><time datetime={new Date(Number(reservation.created_at) * 1000).toISOString()}>{createdLabel(reservation.created_at)}</time></dd></div>
+          </dl>
+          {reservation.message && <div class="admin-message"><h3>Opmerking</h3><p>{reservation.message}</p></div>}
+          {reservation.status !== 'cancelled' && <form action="/admin/reservations/status" method="post" class="admin-actions">
+            <input type="hidden" name="csrf" value={csrf} />
+            <input type="hidden" name="id" value={reservation.id} />
+            <input type="hidden" name="expected" value={reservation.status} />
+            <input type="hidden" name="filter" value={filter} />
+            {reservation.status === 'pending' && <button class="button button-primary" name="target" value="confirmed" type="submit">Bevestigen</button>}
+            <button class="button button-secondary" name="target" value="cancelled" type="submit">Annuleren</button>
+          </form>}
+        </article>
+      </li>)}
+    </ul>}
+</AdminLayout>

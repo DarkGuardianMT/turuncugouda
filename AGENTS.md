@@ -28,6 +28,8 @@
 - Public reservation UI must describe submissions as requests awaiting Turuncu confirmation, never as confirmed bookings.
 - Keep migrations non-destructive unless explicitly authorized otherwise; never reset unrelated data.
 - Do not log reservation payloads or unnecessary personal data.
+- Admin reservation data requires server-side authentication; authenticated mutations require CSRF and same-origin checks.
+- Never log or commit admin credentials/session secrets. Validate status transitions and check the expected current status.
 
 ## Styling
 

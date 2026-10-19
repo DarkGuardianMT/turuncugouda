@@ -37,7 +37,9 @@ The development server normally runs at `http://localhost:4321`.
 | `npm run preview` | Preview the built site locally |
 | `npm start` | Run the built Node standalone server |
 | `npm run db:migrate` | Apply pending database migrations |
-| `npm test` | Run focused validation/configuration tests without a database |
+| `npm test` | Run reservation, authentication, CSRF, and validation tests without a database |
+| `npm run admin:hash-password` | Interactively generate a salted admin password hash with hidden input |
+| `npm run test:admin-integration` | Opt-in local MariaDB/built-runtime verification; see admin setup below |
 | `npm run astro -- --help` | Show Astro CLI help |
 
 Run `npm run build` before `npm run preview`. Preview is a local verification
@@ -45,7 +47,7 @@ server, not a production server.
 
 ## Structure
 
-- `src/pages/`: `/`, `/menu`, `/galerij`, and `/reserveren`
+- `src/pages/`: public routes plus runtime `/admin/login` and protected `/admin/reservations`
 - `src/components/`: shared branding, header, footer, section wrapper, and photo grid
 - `src/assets/`: supplied logo, real photos, and menu reference images
 - `src/layouts/`: reusable document layout
@@ -54,6 +56,7 @@ server, not a production server.
 - `src/server/db/`: lazy server-only MySQL pool and shared configuration validation
 - `src/server/reservations/`: reusable input validation, types, and reservation service
 - `src/pages/api/reservations.ts`: runtime create-only JSON API
+- `src/server/admin/`: single-admin configuration, scrypt verification, signed sessions, CSRF, and local login limiter
 - `db/migrations/`: versioned, non-destructive SQL migrations
 - `scripts/migrate.mjs`: small migration runner with history, checksums, and a database-scoped lock
 - `public/`: static assets copied without transformation (currently empty)
@@ -107,8 +110,9 @@ one SQL statement per migration. Applied files must remain unchanged; line-endin
 differences are ignored for checksums. The runner only operates within `DB_NAME`,
 does not create/drop databases, and never resets data. Migration credentials need
 CREATE/INDEX and migration-history SELECT/INSERT privileges; the application
-account only needs INSERT on `reservations` for this checkpoint. Separate migration
-credentials can be exported for the command, overriding `.env`.
+account needs INSERT and SELECT on `reservations`, plus UPDATE on its `status`
+column for admin actions. Separate migration credentials can be exported for the
+command, overriding `.env`.
 
 MySQL/MariaDB DDL implicitly commits. If execution stops after a table is created
 but before history is recorded, rerunning fails safely on the existing table.
@@ -180,8 +184,9 @@ The form locks submission during a request, associates inline errors with contro
 and replaces itself with a request-received panel on HTTP 201. Personal fields
 are reset, the summary contains only date/time/party size, and no database ID is
 displayed. Requests remain pending until Turuncu confirms them. No automatic
-confirmation, email, or admin workflow is implemented. Without JavaScript the
-form stays disabled to prevent accidental non-JSON submission; phone, Instagram,
+confirmation or email is implemented. The separate admin workflow is described
+below. Without JavaScript the form stays disabled to prevent accidental non-JSON
+submission; phone, Instagram,
 and Contact remain usable. A concise purpose-of-use note is shown near Submit.
 
 The endpoint rejects supplied `Origin` values that differ from the request URL's
@@ -198,11 +203,97 @@ Do not add ad-hoc trust in arbitrary forwarded headers;
 review Astro's [proxy/security configuration](https://docs.astro.build/en/reference/configuration-reference/#securityalloweddomains)
 when the Hostinger setup is known.
 
-Real production rate limiting remains required before public launch. This
-checkpoint intentionally adds no in-memory/distributed limiter or CAPTCHA.
-Assess additional spam protection if needed, define privacy/retention/deletion
-policy, and review future authenticated admin CSRF handling. Admin, email,
-chatbot, capacity management, and deployment remain later checkpoints.
+Real production rate limiting remains required before public launch. The public
+endpoint has no in-memory/distributed limiter or CAPTCHA. Assess additional spam
+protection if needed and define privacy/retention/deletion policy. Email, chatbot,
+capacity management, and deployment remain later checkpoints.
+
+## Local reservation admin setup
+
+One environment-configured administrator is supported. No user table, registration,
+password recovery, or frontend framework is involved. Keep all credentials in ignored
+local `.env` configuration or the hosting environment, never `PUBLIC_` variables.
+
+1. Run `npm run admin:hash-password` in an interactive terminal. Enter and repeat
+   your chosen password (at least 12 characters; input is hidden). The helper rejects
+   pipes and password arguments, writes prompts to stderr, and prints only the final
+   encoded hash to stdout. Use `npm run --silent admin:hash-password` to suppress npm's
+   command banner. It never writes your password or hash to a file.
+2. Add `ADMIN_USERNAME`, `ADMIN_PASSWORD_HASH`, and `ADMIN_SESSION_SECRET` to your
+   existing `.env` without replacing the existing DB settings. Username matching is
+   case-sensitive and trims outer whitespace; passwords are never trimmed.
+3. Generate the session secret locally using
+   `node -p "require('node:crypto').randomBytes(32).toString('base64url')"`.
+   Copy its output into `ADMIN_SESSION_SECRET`; keep it private. The example file
+   contains placeholders, not usable credentials.
+4. The existing DB account needs SELECT and INSERT on `reservations`, and
+   `UPDATE (status)` on `reservations`. A local database administrator can grant
+   the latter using the existing account's exact user/host; no schema migration
+   or database reset is needed. DELETE is only needed for integration-test cleanup,
+   never by the admin application. Keep migration privileges separate in production.
+5. Run `npm run dev` and open `http://localhost:4321/admin/login`.
+
+`/admin/reservations` lists today and future reservations using the Amsterdam
+calendar, sorted by reservation date/time then creation time. Creation timestamps
+are also displayed in Europe/Amsterdam. Status links use validated URL filters:
+Alle, In afwachting, Bevestigd, Geannuleerd. Cards show contact links and escaped
+customer messages. Pending requests can be confirmed/cancelled; confirmed ones can
+be cancelled. Cancelled requests remain stored. Updates compare the expected current
+status and report stale submissions instead of overwriting. No email or SMS is sent:
+the administrator must contact the guest separately.
+
+Passwords use Node scrypt (N=32768, r=8, p=1), a random 32-byte salt and a 64-byte
+key, encoded as `scrypt:32768:8:1:<salt-hex>:<key-hex>`. Colon separators avoid
+Astro/Vite's dollar-variable expansion, so the same `.env` works with Node's env-file
+loader. Verification and authentication signatures use constant-time comparison.
+Sessions are HMAC-SHA256 authenticated
+cookies with a random session nonce, identity, issued-at and expiry. Cookies are
+HttpOnly, SameSite=Strict, scoped to `/admin`, and expire after ten hours without
+sliding renewal. Secure is mandatory in production and on HTTPS requests; development
+HTTP remains usable. Changing the username/hash/session secret invalidates existing
+sessions. Logout expires the browser cookie; a separately copied signed cookie remains
+valid until expiry or credential rotation (there is no server-side session registry).
+
+All admin POSTs require an exact Origin; authenticated status/logout forms also
+require a cryptographically authenticated, session-bound CSRF token. Login uses
+same-origin enforcement and generic errors. A bounded process-local limiter allows
+five login attempts per client address per 15 minutes, resets after successful login,
+and expires automatically. It is neither durable across restarts nor shared across
+instances. It is a local safeguard, not production-grade rate limiting. Saturation
+temporarily rejects new addresses until entries expire. Client addresses come from
+the adapter; trusted-proxy/IP handling must be reviewed before deployment, including
+stripping untrusted forwarded headers and preventing direct access to the origin.
+
+Admin responses use `Cache-Control: no-store`, `X-Robots-Tag: noindex, nofollow`,
+no-referrer policy and anti-framing headers. Authentication is checked on every
+protected request; there is no public list API. Missing admin configuration fails
+closed with a generic response and safe server-side diagnostics. Builds and unit
+tests do not need admin credentials or a running database.
+
+For repeatable **local-only** integration verification, first build, then explicitly
+set `ADMIN_INTEGRATION_LOCAL=1` and run `npm run test:admin-integration`. In PowerShell:
+
+```powershell
+npm run build
+$env:ADMIN_INTEGRATION_LOCAL = '1'
+npm run test:admin-integration
+Remove-Item Env:ADMIN_INTEGRATION_LOCAL
+```
+
+The script reads existing `.env` DB settings, generates temporary admin credentials
+only in child-process memory, starts an isolated built server, checks the public/admin
+HTTP flows and real status updates, and removes only exact IDs with its unique test
+marker. It checks that the row count returns to its initial value. Run without other
+writers against the local database. It never changes `.env`, users, grants, schema,
+migration history, or existing reservations. No generated login password is printed.
+For manual login, set your own hash using the interactive helper above.
+
+Hostinger production work remains deferred: verify HTTPS/proxy Origin reconstruction,
+Secure cookies, canonical allowed hosts, trusted client IPs, authentication hardening
+and durable upstream rate limiting before launch. Privacy/retention/deletion rules
+remain unresolved. Future notifications may use Hostinger SMTP once available;
+database state remains authoritative and future email failure must not roll back a
+successful reservation/status update. No SMTP dependency or settings are added now.
 
 ## Deployment direction
 
@@ -219,7 +310,8 @@ For an external database connection, confirm the provider's private-network/TLS
 setup before enabling traffic; this initial configuration does not specify custom
 TLS certificates. Run `npm run db:migrate` with production migration credentials
 and the repository's migration files **before enabling reservation submissions**.
-Public content remains prerendered using `output: 'static'`; only the API opts out
-with `prerender = false`, following Astro's
+Public content remains prerendered using `output: 'static'`; the API and admin
+pages/actions opt out with `prerender = false`, following Astro's
 [on-demand rendering model](https://docs.astro.build/en/guides/on-demand-rendering/)
 and [official Node adapter](https://docs.astro.build/en/guides/integrations-guide/node/).
+Customer data never enters static output.

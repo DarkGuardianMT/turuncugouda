@@ -1,9 +1,4 @@
-export function isAllowedReservationOrigin(request: Request): boolean {
-  if (request.headers.get('sec-fetch-site') === 'cross-site') return false;
-  const origin = request.headers.get('origin');
-  // Clients zonder Origin blijven ondersteund; dit is geen authenticatie of rate limiting.
-  return origin === null || origin === new URL(request.url).origin;
-}
+export { isAllowedOrigin as isAllowedReservationOrigin } from '../http/origin.ts';
 
 export function preparePublicReservationInput(input: unknown):
   { blocked: true } | { blocked: false; input: unknown } {

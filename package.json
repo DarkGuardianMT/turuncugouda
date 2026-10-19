@@ -13,6 +13,8 @@
     "preview": "astro preview",
     "start": "node ./dist/server/entry.mjs",
     "db:migrate": "node --env-file-if-exists=.env scripts/migrate.mjs",
+    "admin:hash-password": "node scripts/admin-hash-password.mjs",
+    "test:admin-integration": "node --env-file-if-exists=.env scripts/verify-admin.mjs",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
     "astro": "astro"
   },
