@@ -1,0 +1,18 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { site } from '../data/site';
+---
+
+<BaseLayout title={`Pagina niet gevonden | ${site.name}`} description="De pagina die je zoekt bestaat niet of is verplaatst. Ga terug naar de homepage of bekijk het menu van Turuncu." canonicalPath={null} robots="noindex, follow">
+  <main id="main-content" class="section route-placeholder" tabindex="-1">
+    <div class="container">
+      <p class="eyebrow">404</p>
+      <h1>Pagina niet gevonden</h1>
+      <p class="intro">De pagina die je zoekt bestaat niet of is verplaatst.</p>
+      <div class="button-group">
+        <a class="button button-primary" href="/">Terug naar home</a>
+        <a class="button button-secondary" href="/menu">Bekijk het menu</a>
+      </div>
+    </div>
+  </main>
+</BaseLayout>

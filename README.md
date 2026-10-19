@@ -17,7 +17,7 @@ remain alternatives. Nothing has been deployed by this checkpoint.
 - Plain CSS and local TypeScript content data
 - npm, GitHub version control, and intended Hostinger deployment
 - Node.js 22.12.0 or newer on a supported even-numbered release (Node 24 LTS recommended)
-- npm 9.6.5 or newer
+- npm 10.8.2 or newer (required by the sitemap dependency)
 
 ## Local development
 
@@ -39,6 +39,7 @@ The development server normally runs at `http://localhost:4321`.
 | `npm run db:migrate` | Apply pending database migrations |
 | `npm run reservations:cleanup -- --before=YYYY-MM-DD` | Count old reservations eligible for anonymization; dry-run by default |
 | `npm test` | Run reservation, authentication, CSRF, and validation tests without a database |
+| `npm run test:seo` | Audit built SEO/assets/links/sitemap and standalone HTTP behavior; run after building |
 | `npm run admin:hash-password` | Interactively generate a salted admin password hash with hidden input |
 | `npm run test:admin-integration` | Opt-in local MariaDB/built-runtime verification; see admin setup below |
 | `npm run test:retention-integration` | Opt-in local cleanup/retention verification with explicit maintenance credentials |
@@ -379,3 +380,74 @@ pages/actions opt out with `prerender = false`, following Astro's
 [on-demand rendering model](https://docs.astro.build/en/guides/on-demand-rendering/)
 and [official Node adapter](https://docs.astro.build/en/guides/integrations-guide/node/).
 Customer data never enters static output.
+
+## SEO and production environment
+
+`astro.config.mjs` is the canonical production-origin source. It currently uses
+`https://www.turuncugouda.com`. Public BaseLayout metadata, homepage business JSON-LD,
+sitemap and robots.txt derive absolute URLs from that configuration. Canonicals use
+`/` for the homepage and omit trailing slashes elsewhere; existing slash-tolerant
+routing is retained and query/hash variants share the preferred canonical. Canonical
+metadata does not configure DNS, redirects, HTTPS or trusted proxy hosts.
+
+The shared public layout requires a title/description and accepts `canonicalPath`,
+an optional `socialImage` (src/alt/optional dimensions), optional `robots` and trusted
+`structuredData`. Page descriptions are Dutch and unique. Open Graph/Twitter cards
+use a built JPEG generated from the real börek-and-coffee photo; normal page-image
+optimization is unchanged. Only the homepage emits CafeOrCoffeeShop JSON-LD, using
+verified address, phone, social links and Tuesday–Saturday 10:00–16:30 hours.
+
+The official `@astrojs/sitemap` integration generates `sitemap-index.xml` and
+`sitemap-0.xml`. Only `/`, `/menu`, `/galerij`, `/reserveren`, `/privacy` are included.
+The prerendered `robots.txt` points to that index and discourages admin/API crawling;
+authentication remains authoritative. The Dutch custom 404 is noindex/follow and
+excluded from the sitemap. Admin uses its separate layout and noindex/no-store
+headers. A clean favicon-ready brand export is still needed; the supplied logo with
+black margins remains unchanged. No analytics, tracking or consent banner is added.
+
+After `npm run build`, run `npm run test:seo` for repeatable output/HTTP checks.
+It checks titles, descriptions, canonical/social URLs, JSON-LD, sitemap/robots,
+404 status, headings, internal anchors, image metadata, inline/external script sizes,
+private headers and absence of baked configuration secrets. It needs no database
+or real admin configuration and starts/stops an isolated local built server.
+
+Configure actual production values privately in the server process environment.
+Never commit them, prefix them with `PUBLIC_`, or assume the standalone server loads
+a local `.env` file:
+
+| Scope | Server-side variables | Use |
+| --- | --- | --- |
+| Database | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | Required for reservation/admin DB access; use the production database and least-privilege runtime account |
+| Database | `DB_CONNECTION_LIMIT` | Optional pool bound, default 5; review against hosting limits |
+| Admin | `ADMIN_USERNAME`, `ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_SECRET` | Required for one admin; generate a production scrypt hash and fresh strong session secret, never reuse the temporary local credential |
+| Maintenance | `MAINTENANCE_DB_USER`, `MAINTENANCE_DB_PASSWORD` | Required only for explicit cleanup or `db:migrate -- --maintenance`; use separate credentials with appropriate operation-specific privileges |
+
+Hostinger-specific runtime/start settings, database credentials/networking/TLS,
+maintenance access and external URL reconstruction must be verified when hosting
+exists. Review `security.allowedDomains` for the canonical host and verify real
+HTTPS Origin/client-IP handling through the trusted proxy. Do not trust arbitrary
+forwarded headers. Production must consistently redirect the noncanonical domain
+variant, likely apex to www; the decision and actual Hostinger redirect syntax remain
+pending. No DNS, redirect or hosting configuration is supplied here.
+
+## Production prelaunch checklist
+
+All items below remain unverified launch requirements:
+
+- [ ] Owner confirms remaining menu prices/product wording and High Tea details.
+- [ ] Owner approves a concrete reservation retention duration and reviews privacy copy.
+- [ ] Hostinger Node runtime and start configuration are confirmed; production MySQL exists.
+- [ ] Production DB/admin environment values and any separate maintenance credentials are configured securely.
+- [ ] Database networking/TLS, least privileges, backups and recovery procedure are reviewed.
+- [ ] Versioned migrations are applied with the appropriate credentials before accepting requests.
+- [ ] HTTPS works; www/apex canonical and redirect decisions are implemented consistently in hosting.
+- [ ] External host/scheme, allowed domains, Origin checks and trusted client-IP handling are verified behind the real proxy.
+- [ ] Public reservation requests are tested in production and remain pending until Turuncu confirms.
+- [ ] Admin login, Secure cookies, CSRF, status actions and logout are tested over HTTPS.
+- [ ] Durable production reservation/admin rate limiting is enabled; the process-local login limiter alone is insufficient.
+- [ ] Mobile/desktop browser acceptance is completed for navigation, gallery, form, privacy and 404.
+- [ ] Sitemap, robots.txt, canonical/social image URLs and structured data are checked on the deployed domain.
+- [ ] SMTP notifications are configured and tested only if desired once hosting/mail is available; they are currently absent.
+
+SMTP setup, deployment, durable rate limiting and automatic retention scheduling
+are separate tasks. No SMTP variables, mail package or cron are introduced here.

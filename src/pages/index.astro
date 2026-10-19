@@ -5,9 +5,11 @@ import Section from '../components/Section.astro';
 import { Image } from 'astro:assets';
 import PhotoGrid from '../components/PhotoGrid.astro';
 import { photos, highlights, galleryPreview } from '../data/gallery';
+import { businessStructuredData } from '../lib/seo';
+if (!Astro.site) throw new Error('Missing canonical site configuration.');
 ---
 
-<BaseLayout title={site.name}>
+<BaseLayout title={`${site.name} | ${site.city}`} description="Turuncu Café en Bakkerij in Winkelcentrum Bloemendaal in Gouda. Geniet van koffie, Turkse bakkerijproducten, ontbijt, lunch en meer." canonicalPath="/" structuredData={businessStructuredData(Astro.site)}>
   <main id="main-content" tabindex="-1">
     <section class="hero">
       <div class="container hero-grid">

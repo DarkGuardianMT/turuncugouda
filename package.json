@@ -4,7 +4,8 @@
   "type": "module",
   "version": "0.0.1",
   "engines": {
-    "node": ">=22.12.0"
+    "node": ">=22.12.0",
+    "npm": ">=10.8.2"
   },
   "scripts": {
     "dev": "astro dev",
@@ -18,10 +19,12 @@
     "test:admin-integration": "node --env-file-if-exists=.env scripts/verify-admin.mjs",
     "test:retention-integration": "node --env-file-if-exists=.env --experimental-strip-types scripts/verify-retention.mjs",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "test:seo": "node --experimental-strip-types scripts/verify-seo.mjs",
     "astro": "astro"
   },
   "dependencies": {
     "@astrojs/node": "^11.1.8",
+    "@astrojs/sitemap": "^3.7.4",
     "astro": "^7.3.6",
     "mysql2": "^3.24.6"
   },

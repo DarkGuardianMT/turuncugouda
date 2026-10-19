@@ -1,8 +1,17 @@
+const postalCode = '2804 XB';
+const city = 'Gouda';
+
+export const visitHours = {
+  days: ['Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+  opens: '10:00', closes: '16:30',
+} as const;
+
 export const site = {
   name: 'Turuncu Café en Bakkerij',
   subtitle: 'Café • Bakkerij • Lunch',
   address: 'Lekkenburg 67',
-  postalAddress: '2804 XB Gouda',
+  postalCode, city, countryCode: 'NL',
+  postalAddress: `${postalCode} ${city}`,
   location: 'Winkelcentrum Bloemendaal',
   phone: '+31 6 36044912',
   phoneHref: 'tel:+31636044912',
@@ -14,6 +23,6 @@ export const site = {
 
 export const openingHours = [
   { days: 'Maandag', hours: 'Gesloten' },
-  { days: 'Dinsdag t/m zaterdag', hours: '10:00–16:30' },
+  { days: 'Dinsdag t/m zaterdag', hours: `${visitHours.opens}–${visitHours.closes}` },
   { days: 'Zondag', hours: 'Gesloten' },
 ] as const;

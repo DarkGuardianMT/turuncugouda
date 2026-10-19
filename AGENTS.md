@@ -44,6 +44,7 @@
 - Do not invent prices, opening hours, menu items, addresses, claims, or business details.
 - If real business information has not been provided or verified, use clearly temporary placeholders or defer it.
 - The existing live website is reference material, not automatically authoritative or current.
+- Keep metadata/structured-data business facts verified, derive canonical URLs from Astro's configured site, and exclude admin/API/private routes from public indexing metadata and sitemap.
 
 ## Code comments
 

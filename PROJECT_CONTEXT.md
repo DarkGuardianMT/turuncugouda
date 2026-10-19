@@ -362,6 +362,42 @@ created IDs and restore the starting count. Existing app grants, `.env`, unrelat
 rows and preexisting migration history remain intact. Browser verification at
 320/375/768/1440px remains pending because Chrome tooling is unavailable.
 
+## SEO and production-readiness foundation (20 October 2026)
+
+- Canonical production origin is configured once in `astro.config.mjs` as
+  `https://www.turuncugouda.com`. Public canonicals/OG/schema/sitemap/robots use it,
+  including during local builds. Root retains `/`; other preferred paths have no
+  trailing slash. Existing slash-tolerant routes remain; query/hash variants normalize.
+- Typed BaseLayout provides required title/description, canonical path, optional
+  social image/robots/trusted JSON-LD. Dutch titles/descriptions are page-specific.
+  Social cards use an optimized built JPEG from the supplied real hero photo.
+- Homepage-only CafeOrCoffeeShop JSON-LD uses verified business data and machine-readable
+  hours shared with the displayed opening-hours data. Serialization escapes script
+  delimiters; no user/reservation content enters public metadata.
+- Official `@astrojs/sitemap` 3.7.4 generates sitemap-index.xml/sitemap-0.xml for the
+  five indexable public pages only. Prerendered robots.txt references the index and
+  discourages admin/API crawling. Authentication and admin private headers remain
+  authoritative and unchanged. Custom public 404 returns 404, is noindex/follow, has
+  no canonical, and is excluded from sitemap. No suitable favicon export exists yet.
+- `npm run test:seo` audits generated HTML/metadata/links/images/scripts/sitemap,
+  secrets and actual standalone HTTP responses, including 404/private headers.
+  README records production variables and an unchecked prelaunch checklist.
+- Nothing is deployed. Hostinger runtime/DB/maintenance credentials, migrations,
+  HTTPS/proxy/allowed-domain handling, www/apex redirect/DNS, backups and production
+  form/admin acceptance remain launch work. SMTP, durable production rate limiting,
+  analytics and automated cleanup remain unimplemented. Exact retention duration
+  and remaining menu/High Tea content still need owner decisions; browser acceptance
+  remains pending when tooling is unavailable.
+
+Verification: 92 native tests pass with zero Astro/type diagnostics. Credential-free
+build/output/HTTP audits pass for six public HTML files, 70 optimized images,
+five sitemap URLs, actual 404 behavior, private-route separation and absence of
+baked secrets. Public JS remains three inline modules totaling 7,327 unique bytes.
+Existing admin and local retention integration checks also pass with exact test-row
+cleanup; runtime credentials, privileges and privacy architecture are unchanged.
+The only new direct dependency is the sitemap integration; its npm prerequisite
+is reflected in package engines/README. Browser visual acceptance remains pending.
+
 ## Hosting and deployment direction
 
 Use GitHub for version control. Hostinger is the intended deployment target,
