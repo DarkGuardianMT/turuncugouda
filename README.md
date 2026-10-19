@@ -265,7 +265,9 @@ the adapter; trusted-proxy/IP handling must be reviewed before deployment, inclu
 stripping untrusted forwarded headers and preventing direct access to the origin.
 
 Admin responses use `Cache-Control: no-store`, `X-Robots-Tag: noindex, nofollow`,
-no-referrer policy and anti-framing headers. Authentication is checked on every
+`Referrer-Policy: same-origin` and anti-framing headers. This keeps native same-origin
+form POSTs compatible with strict Origin checks while suppressing cross-origin
+referrer leakage. Authentication is checked on every
 protected request; there is no public list API. Missing admin configuration fails
 closed with a generic response and safe server-side diagnostics. Builds and unit
 tests do not need admin credentials or a running database.

@@ -9,7 +9,7 @@ import { loadEnv } from 'vite';
 import { hashPassword, verifyPassword } from '../src/server/admin/password.mjs';
 import { authenticate, cookieOptions, createSession, csrfToken, readAdminConfig, sessionLifetime, verifyCsrf, verifySession } from '../src/server/admin/auth.ts';
 import { createLoginLimiter } from '../src/server/admin/loginLimiter.ts';
-import { readAdminForm } from '../src/server/admin/http.ts';
+import { applyAdminSecurityHeaders, readAdminForm } from '../src/server/admin/http.ts';
 import { statusFilter, validReservationId, validTransition } from '../src/server/reservations/adminLogic.ts';
 
 const password = randomBytes(24).toString('base64url');
@@ -17,6 +17,18 @@ const hash = await hashPassword(password);
 const environment = { ADMIN_USERNAME: 'admin', ADMIN_PASSWORD_HASH: hash, ADMIN_SESSION_SECRET: randomBytes(32).toString('base64url') };
 const config = readAdminConfig(environment);
 const now = Date.parse('2026-10-19T12:00:00Z');
+
+test('admin security headers preserve native same-origin form POSTs and private response protections', () => {
+  for (const status of [200, 303, 403, 503]) {
+    const response = applyAdminSecurityHeaders(new Response(null, { status }));
+    assert.equal(response.status, status);
+    assert.equal(response.headers.get('referrer-policy'), 'same-origin');
+    assert.equal(response.headers.get('cache-control'), 'no-store');
+    assert.equal(response.headers.get('x-robots-tag'), 'noindex, nofollow');
+    assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+    assert.equal(response.headers.get('content-security-policy'), "frame-ancestors 'none'; form-action 'self'; base-uri 'none'");
+  }
+});
 
 test('generated hashes survive both Node and Astro/Vite .env parsing unchanged', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'turuncu-admin-env-'));

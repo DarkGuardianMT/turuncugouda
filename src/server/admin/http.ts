@@ -1,5 +1,15 @@
 import { isAllowedOrigin } from '../http/origin.ts';
 
+export function applyAdminSecurityHeaders(response: Response): Response {
+  response.headers.set('Cache-Control', 'no-store');
+  response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+  // Behoud de Origin bij eigen formulier-POSTs, zonder verwijzers naar andere websites te sturen.
+  response.headers.set('Referrer-Policy', 'same-origin');
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('Content-Security-Policy', "frame-ancestors 'none'; form-action 'self'; base-uri 'none'");
+  return response;
+}
+
 export function adminError(status: number): Response {
   return new Response('De aanvraag kon niet worden verwerkt. Probeer het opnieuw.', { status,
     headers: { 'Content-Type': 'text/plain; charset=utf-8' } });

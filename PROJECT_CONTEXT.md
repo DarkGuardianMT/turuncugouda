@@ -290,7 +290,9 @@ deletion, and any further spam protection remain production decisions.
   Updates compare the expected current status and report stale submissions. Statuses
   remain pending/confirmed/cancelled; cancelled rows are retained. No deletion UI,
   schema migration, notifications, scheduling, roles, registration, or recovery exists.
-- Admin responses are no-store/noindex/nofollow, suppress referrers and framing,
+- Admin responses are no-store/noindex/nofollow and prevent framing. They use
+  `Referrer-Policy: same-origin` so native same-origin HTML form POSTs remain compatible
+  with strict Origin validation while cross-origin referrer leakage is suppressed,
   and contain no reservation PII in metadata. Configuration/DB errors fail safely;
   logs avoid credentials, SQL and customer payloads. The application account needs
   SELECT/INSERT and UPDATE(status); DELETE is only for explicit local test cleanup.
@@ -308,7 +310,8 @@ deletion, and any further spam protection remain production decisions.
   because no browser surface is available and Chrome creation fails in this session.
 
 Verification for this checkpoint: Astro/type checks have zero diagnostics; all
-77 native Node tests pass, including the original 65 public reservation tests.
+78 native Node tests pass, including the original 65 public reservation tests and
+the admin security-header regression added on 20 October 2026.
 Credential-free build succeeds with four static public pages and no admin HTML.
 Local MariaDB/built-runtime checks pass for authentication, cookie flags, CSRF,
 safe configuration/database failures, escaped messages, date/status filters,

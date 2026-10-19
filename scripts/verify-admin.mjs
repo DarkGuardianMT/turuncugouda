@@ -49,6 +49,9 @@ function post(path, data, cookie = '', origin = base) {
 function privateHeaders(response) {
   assert.equal(response.headers.get('cache-control'), 'no-store');
   assert.equal(response.headers.get('x-robots-tag'), 'noindex, nofollow');
+  assert.equal(response.headers.get('referrer-policy'), 'same-origin');
+  assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+  assert.equal(response.headers.get('content-security-policy'), "frame-ancestors 'none'; form-action 'self'; base-uri 'none'");
 }
 async function login() {
   const response = await post('/admin/auth/login', { username: marker, password });
