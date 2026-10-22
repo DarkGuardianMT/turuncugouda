@@ -398,6 +398,27 @@ cleanup; runtime credentials, privileges and privacy architecture are unchanged.
 The only new direct dependency is the sitemap integration; its npm prerequisite
 is reflected in package engines/README. Browser visual acceptance remains pending.
 
+## Pre-publication audit (22 October 2026)
+
+The repository remains private and nothing is deployed. The local audit found no
+real credentials in tracked files or the available Git history, no reservation
+records or database dumps, and no secret leakage in a credential-free build.
+All 92 tests, Astro/type checks, the production build and built SEO/HTTP checks pass.
+No application behavior, database records, credentials or supplied assets changed.
+
+The business owner has approved public GitHub redistribution of the Turuncu assets
+included in this project. The contributor has accepted the email disclosure in
+existing Git history; no history rewriting or metadata changes are required.
+No project license will be added at this stage. These approvals resolve the
+identified publication decisions; the existing production-launch requirements
+remain separate and outstanding. The audit findings apply to the reviewed snapshot
+and do not constitute a production infrastructure or legal ownership assessment.
+
+README now describes the website, implemented features and architecture; detailed
+setup and operations are preserved in `docs/DEVELOPMENT.md`. Ignore rules cover
+common local exports, logs, runtime databases and credential files while retaining
+versioned migrations.
+
 ## Hosting and deployment direction
 
 Use GitHub for version control. Hostinger is the intended deployment target,
