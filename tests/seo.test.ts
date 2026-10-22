@@ -8,6 +8,14 @@ test('Astro config uses the approved HTTPS production origin and static public r
   assert.equal(config.output, 'static');
 });
 
+test('Astro keeps CSRF enabled and trusts only the two HTTPS production hosts', () => {
+  assert.equal(config.security?.checkOrigin, true);
+  assert.deepEqual(config.security?.allowedDomains, [
+    { hostname: 'turuncugouda.com', protocol: 'https' },
+    { hostname: 'www.turuncugouda.com', protocol: 'https' },
+  ]);
+});
+
 test('canonical URLs normalize trailing slashes and omit queries/fragments', () => {
   assert.equal(canonicalUrl('/', config.site!), `${config.site}/`);
   for (const path of ['/menu', '/menu/', '/menu///', '/menu/?status=pending#heading']) {

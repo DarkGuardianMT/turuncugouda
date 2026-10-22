@@ -3,6 +3,7 @@ import { readFile, readdir, stat } from 'node:fs/promises';
 import { parseEnv } from 'node:util';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
+import { request as httpRequest } from 'node:http';
 import { once } from 'node:events';
 import { createHash, randomBytes } from 'node:crypto';
 import config from '../astro.config.mjs';
@@ -147,9 +148,34 @@ console.log(`PASS: sitemap-index.xml and its public-only sitemap, robots.txt, no
 const listener = createServer(); listener.listen(0, '127.0.0.1'); await once(listener, 'listening');
 const port = listener.address().port; await new Promise((resolve) => listener.close(resolve));
 const base = `http://localhost:${port}`;
+
+// node:http behoudt een expliciete Host-header, die fetch in Node kan vervangen.
+function proxyPost(path, body, headers) {
+  return new Promise((resolve, reject) => {
+    const request = httpRequest(new URL(path, base), { method: 'POST', headers: {
+      'content-type': body instanceof URLSearchParams ? 'application/x-www-form-urlencoded' : 'application/json',
+      ...headers,
+    } }, (response) => {
+      const chunks = [];
+      response.on('data', (chunk) => chunks.push(chunk));
+      response.on('error', reject);
+      response.on('end', () => {
+        const responseHeaders = new Headers();
+        for (const [name, value] of Object.entries(response.headers)) {
+          if (value !== undefined) for (const entry of Array.isArray(value) ? value : [value]) responseHeaders.append(name, entry);
+        }
+        resolve(new Response(Buffer.concat(chunks), { status: response.statusCode, headers: responseHeaders }));
+      });
+    });
+    request.on('error', reject);
+    request.end(body.toString());
+  });
+}
+
+const adminPassword = randomBytes(32).toString('base64url');
 const server = spawn(process.execPath, ['./dist/server/entry.mjs'], {
   env: { ...process.env, HOST: '127.0.0.1', PORT: String(port), DB_HOST: '', DB_USER: '', DB_PASSWORD: '',
-    ADMIN_USERNAME: 'seo-runtime-test', ADMIN_PASSWORD_HASH: await hashPassword(randomBytes(32).toString('base64url')),
+    ADMIN_USERNAME: 'seo-runtime-test', ADMIN_PASSWORD_HASH: await hashPassword(adminPassword),
     ADMIN_SESSION_SECRET: randomBytes(32).toString('base64url') },
   stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true,
 });
@@ -186,6 +212,77 @@ try {
   const api = await fetch(`${base}/api/reservations`); assert.equal(api.status, 405);
   assert.equal(api.headers.get('cache-control'), 'no-store');
   console.log('PASS: built HTTP routes, actual 404 statuses/custom body, slash alias canonical, social image/sitemap/robots assets, private admin headers and API separation.');
+
+  const localApi = await fetch(`${base}/api/reservations`, { method: 'POST', body: '{}',
+    headers: { origin: base, 'content-type': 'application/json' } });
+  assert.equal(localApi.status, 400);
+  assert.equal((await localApi.json()).error.code, 'VALIDATION_ERROR');
+  const localLogin = await fetch(`${base}/admin/auth/login`, { method: 'POST', redirect: 'manual',
+    headers: { origin: base }, body: new URLSearchParams({ username: 'seo-runtime-test', password: adminPassword }) });
+  assert.equal(localLogin.status, 303);
+  assert.equal(localLogin.headers.get('location'), '/admin/reservations');
+
+  // Simuleer TLS-beëindiging op de proxy: de lokale verbinding met Node blijft HTTP.
+  for (const host of ['turuncugouda.com', 'www.turuncugouda.com']) {
+    const externalOrigin = `https://${host}`;
+    const headers = { origin: externalOrigin, 'x-forwarded-host': host, 'x-forwarded-proto': 'https' };
+    const submit = (path, body, extraHeaders = {}) => proxyPost(path, body, { ...headers, ...extraHeaders });
+    for (const proxyHeaders of [headers, { ...headers, 'x-forwarded-port': '443' },
+      { ...headers, 'x-forwarded-host': `${host}:443` }, { host, origin: externalOrigin, 'x-forwarded-proto': 'https' }]) {
+      const requestHeaders = { ...proxyHeaders, 'content-type': 'application/json' };
+      const response = await proxyPost('/api/reservations', '{}', requestHeaders);
+      assert.equal(response.status, 400, `Proxy origin accepted for ${host} with ${JSON.stringify(proxyHeaders)}`);
+      assert.equal((await response.json()).error.code, 'VALIDATION_ERROR');
+    }
+    const noOrigin = { ...headers }; delete noOrigin.origin;
+    assert.equal((await proxyPost('/api/reservations', '{}', noOrigin)).status, 400);
+    assert.equal((await proxyPost('/admin/auth/login', new URLSearchParams(), noOrigin)).status, 403);
+    for (const incomplete of [{ origin: externalOrigin, 'x-forwarded-host': host },
+      { origin: externalOrigin, 'x-forwarded-proto': 'https' }]) {
+      assert.equal((await proxyPost('/api/reservations', '{}', incomplete)).status, 403);
+      assert.equal((await proxyPost('/admin/auth/login', new URLSearchParams(), incomplete)).status, 403);
+    }
+    const login = await submit('/admin/auth/login', new URLSearchParams({ username: 'seo-runtime-test', password: adminPassword }));
+    assert.equal(login.status, 303, `Native login passes Astro and application Origin checks for ${host}`);
+    assert.equal(login.headers.get('location'), '/admin/reservations');
+    const setCookie = login.headers.get('set-cookie');
+    assert.ok(setCookie && /Secure/i.test(setCookie) && /HttpOnly/i.test(setCookie) && /SameSite=Strict/i.test(setCookie));
+    const cookie = setCookie.split(';')[0];
+    const list = await fetch(`${base}/admin/reservations`, { headers: { ...headers, cookie } });
+    assert.equal(list.status, 503, 'Authenticated request reaches the missing-DB failure, not a login redirect');
+    const csrf = (await list.text()).match(/name="csrf" value="([A-Za-z0-9_-]+)"/)?.[1];
+    assert.ok(csrf);
+    assert.equal((await submit('/admin/auth/logout', new URLSearchParams(), { cookie })).status, 403);
+    assert.equal((await submit('/admin/auth/logout', new URLSearchParams({ csrf }), { cookie })).status, 303);
+
+    const invalidHeaders = [
+      { origin: 'https://evil.example' },
+      { origin: host.startsWith('www.') ? 'https://turuncugouda.com' : 'https://www.turuncugouda.com' },
+      { origin: `http://${host}` },
+      { 'sec-fetch-site': 'cross-site' },
+      { 'sec-fetch-site': 'same-site' },
+      { host, 'x-forwarded-host': 'evil.example' },
+      { 'x-forwarded-host': 'evil.example', origin: 'https://evil.example' },
+      { 'x-forwarded-host': `${host}, evil.example` },
+      { 'x-forwarded-host': `${host}:8443` },
+      { 'x-forwarded-proto': 'https, http' },
+      { 'x-forwarded-proto': 'http' },
+      { 'x-forwarded-port': '8443' },
+    ];
+    for (const extra of invalidHeaders) {
+      assert.equal((await submit('/api/reservations', '{}', { 'content-type': 'application/json', ...extra })).status, 403);
+      assert.equal((await submit('/admin/auth/login', new URLSearchParams({ username: 'seo-runtime-test', password: adminPassword }), extra)).status, 403);
+    }
+    // Ook gefingeerde same-origin metadata omzeilt de expliciete Origin-controle niet.
+    for (const path of ['/api/reservations', '/admin/auth/login']) {
+      const response = await submit(path, path.startsWith('/api/') ? '{}' : new URLSearchParams(), {
+        'content-type': path.startsWith('/api/') ? 'application/json' : 'application/x-www-form-urlencoded',
+        origin: 'https://evil.example', 'sec-fetch-site': 'same-origin',
+      });
+      assert.equal(response.status, 403);
+    }
+  }
+  console.log('PASS: HTTP reverse-proxy simulation accepts both HTTPS domains, native admin login/Secure cookies and CSRF logout; rejects foreign/mismatched Origins and spoofed host/protocol/port headers.');
 } finally {
   if (server.exitCode === null) { const stopped = once(server, 'exit'); server.kill(); await stopped; }
 }

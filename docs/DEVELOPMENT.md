@@ -1,8 +1,8 @@
 # Development and operations
 
 Local setup, API behavior, security boundaries, maintenance and future deployment
-requirements. Start with the [project overview](../README.md). This project is not
-deployed; production prerequisites below remain open.
+requirements. Start with the [project overview](../README.md). Production runs on
+Hostinger behind an HTTPS reverse proxy; the acceptance checklist remains relevant.
 
 ## Local reservation backend setup
 
@@ -128,19 +128,26 @@ below. Without JavaScript the form stays disabled to prevent accidental non-JSON
 submission; phone, Instagram,
 and Contact remain usable. A concise purpose-of-use note is shown near Submit.
 
-The endpoint rejects supplied `Origin` values that differ from the request URL's
-origin, including mismatched local ports, and rejects `Sec-Fetch-Site: cross-site`.
-Origin-less non-browser clients remain supported. No CORS permissions are added;
-this is not authentication or spam prevention. Before deployment, ensure the
-trusted reverse proxy preserves the external host/scheme and verify real HTTPS
-same-origin submissions. The installed Node adapter normalizes unlisted request
-hosts to localhost: use `localhost` for built local verification. Production must
-explicitly permit the canonical host via `security.allowedDomains`, and verify
-the request URL scheme after HTTPS termination. These deployment-specific settings
-remain a launch prerequisite; the form fails closed on an Origin mismatch.
-Do not add ad-hoc trust in arbitrary forwarded headers;
-review Astro's [proxy/security configuration](https://docs.astro.build/en/reference/configuration-reference/#securityalloweddomains)
-when the Hostinger setup is known.
+Astro's `security.allowedDomains` permits exactly `turuncugouda.com` and
+`www.turuncugouda.com`, using HTTPS. `security.checkOrigin` stays enabled.
+Astro reconstructs the external URL from validated proxy headers
+before its built-in CSRF check and application routes. The shared application
+guard then requires a supplied `Origin` to match that URL exactly: apex and www
+are not interchangeable within a request. Remote HTTP origins, other hosts and
+nondefault ports are rejected. Direct loopback development/tests retain exact
+scheme/host/port checks. Origin-less public clients remain supported; admin POSTs
+always require Origin and authenticated mutations still require session-bound CSRF.
+
+Hostinger must overwrite client-supplied forwarding headers, provide
+`X-Forwarded-Proto: https`, and preserve the public `Host` or set
+`X-Forwarded-Host` to the matching approved domain. Optional forwarded port must be
+`443`. The guard rejects unapproved/conflicting hosts, HTTP or malformed protocols,
+nondefault ports and comma-separated header chains even if Astro would ignore them.
+Missing external scheme/host information fails closed; it is not guessed from Origin.
+Keep the Node origin inaccessible outside the trusted proxy and verify live HTTPS
+login, requests and trusted client IPs after deployment. No CORS permission or spam
+protection is introduced. See Astro's
+[proxy/security configuration](https://docs.astro.build/en/reference/configuration-reference/#securityalloweddomains).
 
 Real production rate limiting remains required before public launch. The public
 endpoint has no in-memory/distributed limiter or CAPTCHA. Assess additional spam
@@ -229,8 +236,8 @@ writers against the local database. It never changes `.env`, users, grants, sche
 migration history, or existing reservations. No generated login password is printed.
 For manual login, set your own hash using the interactive helper above.
 
-Hostinger production work remains deferred: verify HTTPS/proxy Origin reconstruction,
-Secure cookies, canonical allowed hosts, trusted client IPs, authentication hardening
+Production acceptance still requires verifying HTTPS/proxy Origin reconstruction,
+Secure cookies, trusted client IPs, authentication hardening
 and durable upstream rate limiting before launch. Privacy/retention/deletion rules
 remain unresolved. Future notifications may use Hostinger SMTP once available;
 database state remains authoritative and future email failure must not roll back a
@@ -359,8 +366,8 @@ a local `.env` file:
 | Maintenance | `MAINTENANCE_DB_USER`, `MAINTENANCE_DB_PASSWORD` | Required only for explicit cleanup or `db:migrate -- --maintenance`; use separate credentials with appropriate operation-specific privileges |
 
 Hostinger-specific runtime/start settings, database credentials/networking/TLS,
-maintenance access and external URL reconstruction must be verified when hosting
-exists. Review `security.allowedDomains` for the canonical host and verify real
+maintenance access and external URL reconstruction must be verified on Hostinger.
+The two approved HTTPS hosts are configured in `security.allowedDomains`; verify real
 HTTPS Origin/client-IP handling through the trusted proxy. Do not trust arbitrary
 forwarded headers. Production must consistently redirect the noncanonical domain
 variant, likely apex to www; the decision and actual Hostinger redirect syntax remain

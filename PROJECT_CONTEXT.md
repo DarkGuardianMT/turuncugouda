@@ -419,11 +419,42 @@ setup and operations are preserved in `docs/DEVELOPMENT.md`. Ignore rules cover
 common local exports, logs, runtime databases and credential files while retaining
 versioned migrations.
 
+## Hostinger HTTPS proxy origin handling (23 October 2026)
+
+The application is now deployed on Hostinger as an Astro Node standalone app,
+behind TLS termination. Both `https://turuncugouda.com` and
+`https://www.turuncugouda.com` are public domains. Proxy acceptance must still be
+verified over live HTTPS after deploying the fix; no hosting settings or secrets
+are changed by this checkpoint.
+
+`security.allowedDomains` is restricted to those two exact HTTPS hosts, with
+`security.checkOrigin: true`. Astro reconstructs the validated external
+Request URL before its CSRF middleware and route handlers. The shared application
+guard additionally rejects invalid/conflicting/multivalue forwarded headers and
+requires exact Origin equality, including apex versus www. Remote HTTP origins,
+unapproved hosts and nondefault ports fail closed. Direct loopback development/test
+requests retain their exact-origin behavior. Origin-less public callers remain
+supported; admin forms require Origin and mutations retain session-bound CSRF.
+
+The trusted proxy must overwrite supplied forwarding headers, send HTTPS as the
+forwarded protocol and preserve a public Host or approved forwarded host. It must
+also prevent direct origin access. Missing or invalid external URL information is
+not inferred from the browser's Origin. Database-free built-HTTP regression checks
+simulate HTTP upstream connections for both domains, native admin login, Secure
+cookies, authenticated CSRF logout, API validation and hostile forwarding metadata.
+Production rate limiting, client-IP verification and the remaining acceptance and
+privacy requirements are unchanged. Detailed proxy requirements are in
+`docs/DEVELOPMENT.md`.
+
+Verification: 102 tests pass; Astro/type checks have zero diagnostics; the production
+build and `npm run test:seo`, including the proxy HTTP regressions, pass. No database
+rows, migrations, production credentials, menu data or source assets were changed.
+
 ## Hosting and deployment direction
 
-Use GitHub for version control. Hostinger is the intended deployment target,
-ideally connected to GitHub. Production requires Hostinger Node hosting/runtime
-and Hostinger MySQL; the actual plan and delivery workflow remain unconfirmed.
+Use GitHub for version control. Production runs on Hostinger's Node standalone
+runtime. Database environment configuration remains private; the production delivery
+workflow, database networking/TLS and operational safeguards still require review.
 The build produces prerendered pages/assets in `dist/client/` and a standalone
 runtime in `dist/server/`; `npm start` runs its entry point. Production DB variables
 must be supplied at runtime, and migrations must run against the production

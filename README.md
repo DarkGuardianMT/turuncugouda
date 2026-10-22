@@ -4,8 +4,8 @@ A custom website for **Turuncu Café en Bakkerij**, a café in Gouda, the Nether
 It includes Dutch-language pages, a reservation-request backend and a protected
 administration workflow.
 
-**Status:** implemented locally and not yet deployed. Reservation submissions are
-requests awaiting Turuncu's confirmation. Some menu details, the retention period,
+**Status:** deployed on Hostinger as an Astro Node standalone app. Reservation
+submissions are requests awaiting Turuncu's confirmation. Some menu details, the retention period,
 browser acceptance and production safeguards still require review.
 
 ## Implemented features
@@ -43,8 +43,8 @@ Email/SMS notifications, capacity management, a CMS and a chatbot are not implem
 Public pages are built into `dist/client/`; protected pages and API handlers run
 from `dist/server/`. Credentials are supplied through the server environment.
 Customer records are fetched at runtime and never included in static pages.
-Hostinger Node hosting with MySQL is the intended deployment architecture;
-no hosting connection or deployment is configured.
+Deployment uses Hostinger's Node runtime behind an HTTPS reverse proxy, with
+MySQL/MariaDB access configured privately through the server environment.
 
 ## Run locally
 
