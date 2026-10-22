@@ -18,16 +18,24 @@ export interface AdminReservation extends RowDataPacket {
 }
 
 export async function listReservations(status: StatusFilter, now = new Date()): Promise<AdminReservation[]> {
-  const [rows] = await getDatabasePool().execute<AdminReservation[]>(
-    `SELECT CAST(id AS CHAR) AS id, name, phone, email, message,
+  const sql = status === 'all'
+    ? `SELECT CAST(id AS CHAR) AS id, name, phone, email, message,
        DATE_FORMAT(reservation_date, '%Y-%m-%d') AS reservation_date,
        TIME_FORMAT(reservation_time, '%H:%i') AS reservation_time, guest_count, status,
        UNIX_TIMESTAMP(created_at) AS created_at, anonymized_at IS NOT NULL AS is_anonymized
      FROM reservations
-     WHERE reservation_date >= ? AND (? = 'all' OR status = ?)
-     ORDER BY reservation_date ASC, reservation_time ASC, created_at ASC, id ASC`,
-    [todayInAmsterdam(now), status, status],
-  );
+     WHERE reservation_date >= ?
+     ORDER BY reservation_date ASC, reservation_time ASC, created_at ASC, id ASC`
+    : `SELECT CAST(id AS CHAR) AS id, name, phone, email, message,
+       DATE_FORMAT(reservation_date, '%Y-%m-%d') AS reservation_date,
+       TIME_FORMAT(reservation_time, '%H:%i') AS reservation_time, guest_count, status,
+       UNIX_TIMESTAMP(created_at) AS created_at, anonymized_at IS NOT NULL AS is_anonymized
+     FROM reservations
+     WHERE reservation_date >= ? AND status = ?
+     ORDER BY reservation_date ASC, reservation_time ASC, created_at ASC, id ASC`;
+  const today = todayInAmsterdam(now);
+  const parameters = status === 'all' ? [today] : [today, status];
+  const [rows] = await getDatabasePool().execute<AdminReservation[]>(sql, parameters);
   return rows;
 }
 
