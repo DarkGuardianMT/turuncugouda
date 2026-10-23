@@ -36,13 +36,13 @@ not the goal. The gallery will be one of the largest new features.
 This is a working direction, not an irreversible specification. Final sections
 and content will be refined with the business owner.
 
-Homepage `/`:
+Homepage `/` (redesign approved for publication on 23 October 2026):
 
 - Header/navigation
 - Hero
-- Menu/highlights
+- Product-name ticker in dark Turuncu orange with warm cream text
+- Compact nine-image favorites preview; the section label is screen-reader-only
 - Over ons
-- Gallery preview
 - Contact, reservations guidance, and opening information
 - Footer
 
@@ -65,8 +65,9 @@ with `aria-current="page"`; no scroll-spy is used for homepage anchors.
 ## Design direction
 
 Largely preserve the existing brand identity, including its recognizable warm/orange
-character. The supplied real logo is integrated, with the current approved subtitle
-`Café • Bakkerij • Lunch` kept as editable HTML text.
+character. The supplied real logo is integrated. In the local redesign, the header
+uses `Turuncu maakt u blij` in warm dark-orange, regular italic Georgia with compact
+balanced wrapping; `Café • Bakkerij • Lunch` remains in the hero and footer.
 The visual foundation uses restrained orange, cream, warm white, and dark brown.
 Warm cream is the primary page background, with slightly lighter cream sections
 and a deeper warm footer surface for subtle hierarchy. White and near-white are
@@ -119,11 +120,12 @@ source resolution. No external or generated photography is used.
 
 Main assignments: `borek-coffee.webp` for the contained 4:3 hero, `latte-art.webp`
 for Café, `ig-08.webp` for Bakkerij, `menemen.webp` for Lunch, and
-`counter-tulips.webp` for Over ons. The homepage preview displays three photos on
-small mobiles and six from 576px upwards;
-`src/data/gallery.ts` shares image metadata with a reusable `PhotoGrid` component
-and the full gallery. The gallery currently includes 13 distinct suitable photos.
-The letterboxed `ig-07.webp` is preserved but not displayed.
+`counter-tulips.webp` for Over ons. The local homepage redesign displays nine
+favorites at every width in a single compact mosaic. `src/data/favorites.ts`
+reuses existing gallery metadata and adds a generic coffee label for `ig-07.webp`;
+its thumbnail framing avoids the letterbox edge without modifying the source.
+`src/data/gallery.ts` continues to share metadata with the reusable `PhotoGrid`
+and the unchanged 13-photo gallery.
 Gallery items have short Dutch titles, descriptions, and category metadata from
 the stable set Café, Bakkerij, Lunch, Zoet, and Sfeer. Uncertain products retain
 generic labels; specific varieties still need owner confirmation. `/galerij` offers
@@ -134,8 +136,12 @@ Real buttons expose selection through `aria-pressed` and an underline as well as
 color, wrap on small screens, and announce the result count to assistive technology.
 Filtering is instant and client-side; it neither changes the URL/history nor
 persists across refreshes. The filter bar is hidden without JavaScript, leaving
-all photos visible. The homepage preview stays static and
-intentionally simpler, with its existing link to `/galerij` and no lightbox script.
+all photos visible. The local homepage favorites reuse `PhotoGrid` and the same
+`GalleryLightbox` component, with nine photos and one grid. Category headings,
+captions, item names and zoom labels are absent from the visible homepage grid;
+accessible button names and image metadata remain available to the lightbox.
+The section retains a screen-reader-only h2. The standalone gallery's defaults
+remain unchanged, with h2 captions, descriptions and its existing filters.
 The full gallery uses consistent 4:3 photo crops with captions underneath and
 one column on small mobiles, two from 576px, and three from 1024px.
 The full gallery opens with food, coffee, bakery, lunch, and atmosphere. Small
@@ -154,8 +160,9 @@ prices, variants, supplements, and optional per-person units. `/menu` renders
 static semantic menu lists with six native category anchor links and sticky-header
 clearance. Original detailed category names remain visible under those groups.
 Shared Menu navigation now links to `/menu` with the existing active-page treatment.
-The homepage retains its three Café/Bakkerij/Lunch photos and a “Bekijk het menu”
-CTA; it does not duplicate the full menu.
+The local homepage favorites replace the previous Café/Bakkerij/Lunch highlights;
+the shared navigation still links directly to `/menu`. The homepage does not
+duplicate the full menu.
 
 Obvious source spelling errors are normalized for publication while preserving
 Turkish names and the supplied products/descriptions. Currency uses Dutch comma
@@ -510,6 +517,78 @@ production build and extended `npm run test:seo` pass. The generated PNGs and al
 ICO frames preserve transparency around the artwork. The visible bounding boxes
 are 14×14px on the 16px canvas and 28×28px on the 32px canvas: 87.5% of each axis
 and 76.6% of canvas area. Coverage checks reject the previous tiny-logo output.
+
+## Approved homepage redesign (23 October 2026)
+
+The owner approved the refined homepage, including the orange ticker variant,
+and authorized committing and pushing it to main after final verification.
+Hostinger automatically deploys pushes to main; hosting configuration is unchanged.
+
+- The header retains its logo and uses the owner-provided slogan in compact,
+  regular (400) italic Georgia, dark orange and 0.01em letter spacing, with
+  balanced wrapping on mobile. No font download or decorative frame is added.
+  The footer and hero retain the café/bakery/lunch positioning.
+- The hero heading/image and secondary visit CTA remain. `Ontdek onze favorieten`
+  uses a native same-page `#favorieten` anchor, with smooth scrolling only when
+  reduced motion is not requested and the existing sticky-header clearance.
+- A CSS-only product-name ticker sits between the hero and compact image preview.
+  Names verified against menu data are Cappuccino, Menemen, Börek, Warme matcha,
+  Cheesecake, Gözleme, High Tea, Turkse koffie and Tiramisu. Two identical groups
+  (including trailing spacing) translate by exactly one group width (-50% of the
+  track) over 70 seconds, linearly and infinitely. Visual copies are hidden from
+  assistive technology; one static text list supplies the accessible names.
+  A native checkbox/label pauses/resumes the animation without JavaScript; hovering
+  or focusing the row also pauses it. Reduced motion defaults to one static,
+  horizontally scrollable row, with no duplicate or animation controls.
+  The approved colors are existing dark orange `#a83c0b` and warm cream `#f6eddf`
+  (5.46:1 text contrast), with cream separators at 85% opacity and matching light
+  focus outlines. Typography remains regular-weight and the strip stays shallow.
+- Nine images form a 3×3 grid from 360px, with two columns below that width. Its
+  maximum width is the shared 1184px container, increased from 960px. Gaps are 8px
+  below 768px, 12px from 768px and 16px from 1024px, with consistent 8:5 thumbnails. There are
+  no visible headings, categories, captions, product names or zoom labels. A
+  screen-reader-only heading preserves the named section, and a small 44px-tall
+  branded `Ontdek de galerij` button to `/galerij` follows the mosaic. The later
+  redundant preview stays removed. The light cream section stays unframed: no
+  extra card, border or shadow competes with the photos.
+- PhotoGrid adds an opt-in compact homepage variant and configurable grid IDs;
+  its standalone defaults and the existing lightbox implementation are retained.
+  All nine favorites share one native dialog, keyboard/arrows/Escape and focus return.
+- The selection is Koffiemoment (`latte-art`), Börek en koffie (`borek-coffee`),
+  Koffie & iets lekkers (`ig-07`); Uit de bakkerij (`ig-08`), Sesambroodjes (`ig-00`),
+  Een puntje taart (`ig-01`); Menemen (`menemen`), Hartige gebakjes (`ig-03`),
+  In de vitrine (`borek-display`). No prices, ingredients or product claims are added.
+- Over Turuncu's copy/image, contact/hours, standalone menu/gallery sources,
+  reservation/admin/SMTP/database/rate-limiting logic and domain/proxy settings are unchanged.
+- The nine photos are a temporary selection awaiting better business photography;
+  the refinement keeps the same image order, titles and descriptions in the lightbox.
+- All 127 tests, zero-diagnostic Astro/type checks, the production build and extended
+  SEO/HTTP audit pass. Built checks assert the nine distinct photos, no visible grid
+  captions/category headings, retained lightbox metadata, shared script/unique IDs,
+  CTA targets, verified ticker names/identical copies and the standalone gallery's
+  original 13 photos/captions/zoom labels. The ticker adds no client script.
+- Actual local browser inspection at 390px, 768px, 1440px and 1920px confirms layouts,
+  same-page scrolling, all nine loaded images, lightbox keyboard opening/arrows/Escape
+  and focus return, navigation and gallery CTA, with no horizontal overflow or console
+  warnings/errors. Additional 320px/1024px checks show no slogan/navigation collision.
+  Screenshots are local ignored review artifacts under `.tmp/ui-review/`.
+- Refinement measurements at the same viewport widths: 390px preview height drops
+  from about 3341px to 310px (91%); 768px from 1157px to 552px (52%); 1440px from
+  1659px to 722px (57%). Mobile thumbnails at 390px are about 104×65px. The visible
+  grid has no text, and all nine images retain their lightbox information and
+  working keyboard/arrows/Escape/focus return. No overflow or console errors occur.
+  These are the previous compact checkpoint measurements. The wider refinement
+  keeps the 390px section at 310px, measures 556px at 768px and 868px at 1440px;
+  both 1440px and 1920px use the capped 1184px-wide mosaic. The ticker adds 60px on
+  mobile/tablet and about 66px on desktop. Equal ticker group widths, continuous
+  transform movement, pause/resume and keyboard toggling are verified in-browser.
+  The reduced-motion fallback is rendered using an ignored local CSS media fixture
+  because the browser has no media-emulation capability; it has no animation,
+  one visible copy and working keyboard horizontal scrolling without page overflow.
+  New screenshots use the `ticker-` prefix in `.tmp/ui-review/`.
+- The lighter slogan, wider mosaic, ticker pace and orange/cream strip are approved.
+  Better business photography remains a future refinement. No High Tea promotion
+  or new business information is included.
 
 ## Hosting and deployment direction
 

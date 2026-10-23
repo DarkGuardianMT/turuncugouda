@@ -6,31 +6,37 @@ interface Props {
   photos: GalleryPhoto[];
   interactive?: boolean;
   preview?: boolean;
+  id?: string;
+  favorites?: boolean;
 }
-const { photos, interactive = false, preview = false } = Astro.props;
+const { photos, interactive = false, preview = false, id = 'gallery-grid', favorites = false } = Astro.props;
 const largeImages = interactive ? await Promise.all(photos.map(({ image }) =>
   getImage({ src: image, width: Math.min(1600, image.width), format: 'webp', quality: 85 })
 )) : [];
 ---
 
-<div id={interactive ? 'gallery-grid' : undefined} class:list={['gallery-grid', { 'gallery-full': interactive, 'gallery-preview': preview }]}>
+<div id={interactive ? id : undefined} class:list={['gallery-grid', { 'gallery-full': interactive, 'gallery-preview': preview, 'favorites-grid': favorites }]}>
   {photos.map(({ image, alt, objectPosition, title, description, category }, index) => (
     <figure class="gallery-card" data-gallery-category={interactive ? category : undefined}>
       {interactive ? (
-        <button class="gallery-trigger" type="button" aria-label={`Vergroot foto: ${title}`}
-          aria-haspopup="dialog" aria-controls="gallery-lightbox" disabled
-          data-gallery-image={largeImages[index].src} data-gallery-alt={alt}
-          data-gallery-title={title} data-gallery-description={description}
-          data-gallery-width={largeImages[index].attributes.width}
-          data-gallery-height={largeImages[index].attributes.height}>
-          <Image src={image} alt={alt} width={Math.min(640, image.width)}
-            widths={[320, 480, 640, 960].filter((width) => width <= image.width)}
-            sizes="(min-width: 1248px) 379px, (min-width: 1024px) calc((100vw - 112px) / 3), (min-width: 768px) calc((100vw - 88px) / 2), (min-width: 576px) calc((100vw - 72px) / 2), calc(100vw - 48px)"
-            style={objectPosition ? { objectPosition } : undefined}
-            loading="lazy" decoding="async" />
-          <span class="gallery-zoom" aria-hidden="true">Vergroot ↗</span>
-        </button>
-        <figcaption><h2>{title}</h2><p>{description}</p></figcaption>
+        <Fragment>
+          <button class="gallery-trigger" type="button" aria-label={`Vergroot foto: ${title}`}
+            aria-haspopup="dialog" aria-controls="gallery-lightbox" disabled
+            data-gallery-image={largeImages[index].src} data-gallery-alt={alt}
+            data-gallery-title={title} data-gallery-description={description}
+            data-gallery-width={largeImages[index].attributes.width}
+            data-gallery-height={largeImages[index].attributes.height}>
+            <Image src={image} alt={alt} width={Math.min(640, image.width)}
+              widths={[320, 480, 640, 960].filter((width) => width <= image.width)}
+              sizes={favorites
+                ? '(min-width: 1248px) 384px, (min-width: 1024px) calc((100vw - 96px) / 3), (min-width: 768px) calc((100vw - 88px) / 3), (min-width: 360px) calc((100vw - 64px) / 3), calc((100vw - 56px) / 2)'
+                : '(min-width: 1248px) 379px, (min-width: 1024px) calc((100vw - 112px) / 3), (min-width: 768px) calc((100vw - 88px) / 2), (min-width: 576px) calc((100vw - 72px) / 2), calc(100vw - 48px)' }
+              style={objectPosition ? { objectPosition } : undefined}
+              loading="lazy" decoding="async" />
+            {!favorites && <span class="gallery-zoom" aria-hidden="true">Vergroot ↗</span>}
+          </button>
+          {!favorites && <figcaption><h2>{title}</h2><p>{description}</p></figcaption>}
+        </Fragment>
       ) : (
         <Image src={image} alt={alt} width={Math.min(640, image.width)}
           widths={[320, 480, 640, 960].filter((width) => width <= image.width)}

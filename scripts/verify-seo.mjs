@@ -9,6 +9,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import config from '../astro.config.mjs';
 import { hashPassword } from '../src/server/admin/password.mjs';
 import sharp from 'sharp';
+import { tickerProducts } from '../src/data/productTicker.ts';
 
 const root = 'dist/client';
 const origin = new URL(config.site).origin;
@@ -168,9 +169,49 @@ for (const [path, html] of htmlByPath) {
     if (target.hash) assert.ok(htmlByPath.get(targetPath).includes(`id="${decodeURIComponent(target.hash.slice(1))}"`), `Anchor exists: ${href}`);
   }
 }
-for (const path of ['/menu', '/privacy', '/404']) assert.deepEqual(scriptsByPath.get(path), scriptsByPath.get('/'));
-assert.equal(scriptsByPath.get('/galerij').length, scriptsByPath.get('/').length + 1);
-assert.equal(scriptsByPath.get('/reserveren').length, scriptsByPath.get('/').length + 1);
+for (const path of ['/privacy', '/404']) assert.deepEqual(scriptsByPath.get(path), scriptsByPath.get('/menu'));
+assert.deepEqual(scriptsByPath.get('/'), scriptsByPath.get('/galerij'), 'Homepage reuses the same gallery lightbox script');
+assert.equal(scriptsByPath.get('/').length, scriptsByPath.get('/menu').length + 1);
+assert.equal(scriptsByPath.get('/reserveren').length, scriptsByPath.get('/menu').length + 1);
+
+const homepage = htmlByPath.get('/');
+assert.match(homepage, /<a\b[^>]*href="#favorieten"[^>]*>Ontdek onze favorieten<\/a>/);
+assert.ok(homepage.includes('Café • Bakkerij • Lunch'));
+assert.ok(homepage.match(/<header\b[\s\S]*?<\/header>/)[0].includes('Turuncu maakt u blij'));
+const favoritesStart = homepage.indexOf('<section id="favorieten"');
+const aboutStart = homepage.indexOf('<section id="over-ons"');
+assert.ok(favoritesStart > homepage.indexOf('class="hero"') && aboutStart > favoritesStart);
+const tickerStart = homepage.indexOf('<section class="product-ticker"');
+assert.ok(tickerStart > homepage.indexOf('class="hero"') && tickerStart < favoritesStart, 'Ticker sits between hero and mosaic');
+const tickerMarkup = homepage.slice(tickerStart, favoritesStart);
+const tickerCopies = [0, 1].map((copy) => tickerMarkup.match(new RegExp(`<div\\b[^>]*data-ticker-copy="${copy}"[^>]*>([\\s\\S]*?)<\\/div>`))?.[1]);
+assert.ok(tickerCopies[0]); assert.deepEqual(tickerCopies[1], tickerCopies[0], 'Identical ticker groups support seamless looping');
+const renderedProducts = [...tickerCopies[0].matchAll(/<span\b[^>]*class="ticker-item"[^>]*>([^<]+)/g)].map((match) => decode(match[1]));
+assert.deepEqual(renderedProducts, [...tickerProducts]);
+assert.match(tickerMarkup, /<input\b[^>]*id="ticker-pause"[^>]*type="checkbox"/);
+assert.match(tickerMarkup, /<label\b[^>]*for="ticker-pause"/);
+assert.match(tickerMarkup, /<div\b[^>]*class="ticker-track"[^>]*aria-hidden="true"/);
+assert.ok(!tickerMarkup.includes('<img') && !tickerMarkup.includes('href='), 'Ticker has no images or product links');
+const favoritesMarkup = homepage.slice(favoritesStart, aboutStart);
+const favoritesGrid = favoritesMarkup.slice(0, favoritesMarkup.indexOf('<dialog'));
+assert.match(favoritesGrid, /<h2\b[^>]*class="sr-only"[^>]*>Onze favorieten<\/h2>/);
+assert.equal((favoritesGrid.match(/<h[34]\b/g) ?? []).length, 0, 'No visible category or item headings');
+assert.equal((favoritesGrid.match(/<figcaption\b/g) ?? []).length, 0, 'No photo captions in the compact grid');
+assert.ok(!favoritesGrid.includes('class="gallery-zoom"'), 'No repeated zoom labels over the images');
+assert.equal((favoritesGrid.match(/class="gallery-grid /g) ?? []).length, 1, 'One compact nine-photo grid');
+const favoriteImages = [...favoritesMarkup.matchAll(/data-gallery-image="([^"]+)"/g)].map((match) => match[1]);
+assert.equal(favoriteImages.length, 9); assert.equal(new Set(favoriteImages).size, 9);
+assert.equal((favoritesGrid.match(/data-gallery-title="[^"]+"/g) ?? []).length, 9, 'Image titles remain available to the lightbox');
+assert.equal((favoritesGrid.match(/data-gallery-description="[^"]+"/g) ?? []).length, 9, 'Descriptions remain available to the lightbox');
+assert.equal((homepage.match(/id="gallery-lightbox"/g) ?? []).length, 1);
+const homepageIds = [...homepage.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]);
+assert.equal(new Set(homepageIds).size, homepageIds.length, 'Unique IDs across favorite grids and shared lightbox');
+assert.match(favoritesMarkup, /<a\b[^>]*class="button button-primary"[^>]*href="\/galerij"[^>]*>Ontdek de galerij/);
+assert.ok(!favoritesGrid.includes('href="/reserveren"'), 'Gallery preview has no reservation CTA');
+assert.ok(!homepage.includes('Een kijkje bij Turuncu') && !homepage.includes('class="highlights-grid"'));
+assert.equal((htmlByPath.get('/galerij').match(/data-gallery-image=/g) ?? []).length, 13);
+assert.equal((htmlByPath.get('/galerij').match(/<figcaption\b/g) ?? []).length, 13, 'Standalone gallery keeps its captions');
+assert.equal((htmlByPath.get('/galerij').match(/class="gallery-zoom"/g) ?? []).length, 13, 'Standalone gallery keeps its zoom labels');
 
 const robots = await readFile(`${root}/robots.txt`, 'utf8');
 assert.ok(robots.includes('User-agent: *') && robots.includes('Disallow: /admin/') && robots.includes('Disallow: /api/'));

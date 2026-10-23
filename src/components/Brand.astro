@@ -2,11 +2,14 @@
 import { Image } from 'astro:assets';
 import logo from '../assets/brand/logo.webp';
 import { site } from '../data/site';
+
+interface Props { tagline?: string; }
+const { tagline = site.subtitle } = Astro.props;
 ---
 
 <a class="brand" href="/" aria-label="Turuncu — naar de homepage">
   <span class="brand-logo">
     <Image src={logo} alt="Turuncu" width={240} widths={[160, 240, 320]} sizes="(min-width: 1024px) 105px, 95px" loading="lazy" />
   </span>
-  <span class="brand-subtitle">{site.subtitle}</span>
+  <span class="brand-subtitle">{tagline}</span>
 </a>
