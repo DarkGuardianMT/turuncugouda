@@ -403,20 +403,21 @@ authentication remains authoritative. The Dutch custom 404 is noindex/follow and
 excluded from the sitemap. Admin uses its separate layout and noindex/no-store
 headers. No analytics, tracking or consent banner is added.
 
-Favicons use the unchanged source artwork in `src/assets/turuncufavicon.png`.
+Favicons use the unchanged transparent source artwork in `src/assets/faviconturuncu.png`.
 Run `npm run favicon:generate` after replacing that source to regenerate the four
 committed files in `public/`: a 16/32/48px ICO, 16px and 32px PNGs, and the 180px
 Apple touch icon. The script uses the existing Sharp installation, preserves the
-whole artwork and background, and applies lossless PNG compression. The shared
-`BaseLayout.astro` head links these root-relative assets on every public page,
+whole canvas and aspect ratio, adds transparent padding to square outputs, and
+applies lossless PNG compression. No cropping or background flattening is used.
+The shared `BaseLayout.astro` head links these root-relative assets on every public page,
 including 404. No manifest or PWA behavior is needed for these icons.
 
 After `npm run build`, run `npm run test:seo` for repeatable output/HTTP checks.
 It checks titles, descriptions, canonical/social URLs, JSON-LD, sitemap/robots,
 404 status, headings, internal anchors, image metadata, inline/external script sizes,
-private headers, favicon links/dimensions/file sizes/HTTP responses and absence of
-baked configuration secrets. It needs no database
-or real admin configuration and starts/stops an isolated local built server.
+private headers, favicon links/transparency/dimensions/file sizes/HTTP responses and
+absence of baked configuration secrets. It needs no database or real admin
+configuration and starts/stops an isolated local built server.
 
 Configure actual production values privately in the server process environment.
 Never commit them, prefix them with `PUBLIC_`, or assume the standalone server loads

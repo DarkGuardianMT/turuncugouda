@@ -488,21 +488,23 @@ No live email was sent and no database records or private environment files chan
 
 ## Site favicon (23 October 2026)
 
-The owner-supplied `src/assets/turuncufavicon.png` is retained unchanged as the
-favicon source. `npm run favicon:generate` uses the existing Sharp installation
-to resize the whole square artwork with lossless PNG compression, preserving
-its colors and white background. Committed assets in `public/` are `favicon.ico`
+The owner-supplied transparent `src/assets/faviconturuncu.png` is retained unchanged
+as the favicon source. `npm run favicon:generate` uses the existing Sharp installation
+to resize the whole landscape canvas with lossless PNG compression, preserving
+its colors, aspect ratio and transparency. Square outputs use transparent padding
+without cropping or flattening. The previous opaque source has been removed;
+only this source and the four required generated assets are retained.
+Committed assets in `public/` are `favicon.ico`
 (16/32/48px PNG frames), `favicon-16x16.png`, `favicon-32x32.png`, and
 `apple-touch-icon.png` (180px). The shared public `BaseLayout.astro` head links
 all four, including on 404. No manifest, PWA behavior or new dependency is added.
 The built SEO audit verifies links on every public page, copied asset bytes,
-PNG/ICO dimensions, file size budgets and successful production-runtime image
-responses, including `/favicon.ico`.
+PNG/ICO dimensions, alpha channels and transparent corners, file size budgets and
+successful production-runtime image responses, including `/favicon.ico`.
 
 Verification: all 126 tests pass; Astro/type checks have zero diagnostics; the
-production build and extended `npm run test:seo` pass. Generated sizes are 717
-bytes (16px PNG), 1,961 bytes (32px PNG), 30,279 bytes (180px PNG), and 6,426
-bytes (ICO). The 32px and Apple touch icon previews preserve the source artwork.
+production build and extended `npm run test:seo` pass. The generated PNGs and all
+ICO frames preserve transparency around the artwork.
 
 ## Hosting and deployment direction
 

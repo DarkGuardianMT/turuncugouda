@@ -108,15 +108,25 @@ for (const [path, [title, file]] of routes) {
 }
 for (const image of imageUrls) assert.ok((await stat(`${root}${new URL(image).pathname}`)).size > 0);
 
+async function checkIconImage(bytes, size) {
+  const metadata = await sharp(bytes).metadata();
+  assert.equal(metadata.format, 'png');
+  assert.equal(metadata.width, size); assert.equal(metadata.height, size);
+  assert.equal(metadata.hasAlpha, true, 'Favicon keeps its alpha channel');
+  const alpha = await sharp(bytes).extractChannel('alpha').raw().toBuffer();
+  for (const corner of [0, size - 1, size * (size - 1), size * size - 1]) {
+    assert.equal(alpha[corner], 0, 'Favicon corners remain fully transparent');
+  }
+  assert.ok(alpha.some((value) => value > 0), 'Favicon artwork remains visible');
+}
+
 for (const icon of faviconLinks) {
   const bytes = await readFile(`${root}${icon.href}`);
   assert.deepEqual(bytes, await readFile(`public${icon.href}`), `Favicon copied unchanged: ${icon.href}`);
   assert.ok(bytes.length > 0 && bytes.length < (icon.rel === 'apple-touch-icon' ? 40_000 : 10_000), 'Optimized icon size');
   if (icon.href.endsWith('.png')) {
-    const metadata = await sharp(bytes).metadata();
     const size = Number(icon.sizes.split('x')[0]);
-    assert.equal(metadata.format, 'png');
-    assert.equal(metadata.width, size); assert.equal(metadata.height, size);
+    await checkIconImage(bytes, size);
   } else {
     assert.equal(bytes.readUInt16LE(0), 0); assert.equal(bytes.readUInt16LE(2), 1);
     assert.equal(bytes.readUInt16LE(4), 3);
@@ -126,9 +136,7 @@ for (const icon of faviconLinks) {
       const length = bytes.readUInt32LE(entry + 8);
       const offset = bytes.readUInt32LE(entry + 12);
       assert.ok(offset >= 54 && length > 0 && offset + length <= bytes.length);
-      const metadata = await sharp(bytes.subarray(offset, offset + length)).metadata();
-      assert.equal(metadata.format, 'png');
-      assert.equal(metadata.width, size); assert.equal(metadata.height, size);
+      await checkIconImage(bytes.subarray(offset, offset + length), size);
     }
   }
 }
@@ -230,7 +238,7 @@ try {
       ? /^image\/(?:x-icon|vnd\.microsoft\.icon)(?:;|$)/ : /^image\/png(?:;|$)/);
     assert.deepEqual(Buffer.from(await response.arrayBuffer()), await readFile(`public${icon.href}`));
   }
-  console.log('PASS: shared favicon links on every public page, PNG/ICO dimensions and size budgets, and all four production icon URLs with matching image responses.');
+  console.log('PASS: shared favicon links on every public page, PNG/ICO transparency, dimensions and size budgets, and all four production icon URLs with matching image responses.');
   for (const path of routes.keys()) {
     const response = await fetch(`${base}${path}`, { redirect: 'manual' });
     assert.equal(response.status, path === '/404' ? 404 : 200);
