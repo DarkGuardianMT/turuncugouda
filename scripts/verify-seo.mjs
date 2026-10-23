@@ -117,7 +117,26 @@ async function checkIconImage(bytes, size) {
   for (const corner of [0, size - 1, size * (size - 1), size * size - 1]) {
     assert.equal(alpha[corner], 0, 'Favicon corners remain fully transparent');
   }
-  assert.ok(alpha.some((value) => value > 0), 'Favicon artwork remains visible');
+  for (let position = 0; position < size; position++) {
+    for (const edge of [position, size * (size - 1) + position, position * size, position * size + size - 1]) {
+      assert.equal(alpha[edge], 0, 'Favicon keeps a transparent border around the artwork');
+    }
+  }
+  let left = size, top = size, right = -1, bottom = -1, visiblePixels = 0;
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      // Zeer zwakke resamplingranden mogen de zichtbare begrenzing niet kunstmatig vergroten.
+      if (alpha[y * size + x] < 16) continue;
+      left = Math.min(left, x); right = Math.max(right, x);
+      top = Math.min(top, y); bottom = Math.max(bottom, y);
+      visiblePixels++;
+    }
+  }
+  const width = right - left + 1, height = bottom - top + 1;
+  assert.ok(width / size >= 0.8 && width / size <= 0.9, `Visible favicon width: ${width}/${size}`);
+  assert.ok(height / size >= 0.8 && height / size <= 0.9, `Visible favicon height: ${height}/${size}`);
+  assert.ok(visiblePixels / (size * size) >= 0.15, 'Substantial visible artwork, not just isolated edge pixels');
+  return { width, height };
 }
 
 for (const icon of faviconLinks) {
@@ -126,7 +145,8 @@ for (const icon of faviconLinks) {
   assert.ok(bytes.length > 0 && bytes.length < (icon.rel === 'apple-touch-icon' ? 40_000 : 10_000), 'Optimized icon size');
   if (icon.href.endsWith('.png')) {
     const size = Number(icon.sizes.split('x')[0]);
-    await checkIconImage(bytes, size);
+    const { width, height } = await checkIconImage(bytes, size);
+    console.log(`PASS: ${icon.href} visible bounding box ${width}×${height}: ${(width / size * 100).toFixed(1)}% width, ${(height / size * 100).toFixed(1)}% height, ${(width * height / (size * size) * 100).toFixed(1)}% canvas area (alpha >= 16).`);
   } else {
     assert.equal(bytes.readUInt16LE(0), 0); assert.equal(bytes.readUInt16LE(2), 1);
     assert.equal(bytes.readUInt16LE(4), 3);
@@ -238,7 +258,7 @@ try {
       ? /^image\/(?:x-icon|vnd\.microsoft\.icon)(?:;|$)/ : /^image\/png(?:;|$)/);
     assert.deepEqual(Buffer.from(await response.arrayBuffer()), await readFile(`public${icon.href}`));
   }
-  console.log('PASS: shared favicon links on every public page, PNG/ICO transparency, dimensions and size budgets, and all four production icon URLs with matching image responses.');
+  console.log('PASS: shared favicon links on every public page, PNG/ICO transparency, visible artwork coverage, dimensions and size budgets, and all four production icon URLs with matching image responses.');
   for (const path of routes.keys()) {
     const response = await fetch(`${base}${path}`, { redirect: 'manual' });
     assert.equal(response.status, path === '/404' ? 404 : 200);

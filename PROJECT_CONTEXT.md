@@ -490,21 +490,26 @@ No live email was sent and no database records or private environment files chan
 
 The owner-supplied transparent `src/assets/faviconturuncu.png` is retained unchanged
 as the favicon source. `npm run favicon:generate` uses the existing Sharp installation
-to resize the whole landscape canvas with lossless PNG compression, preserving
-its colors, aspect ratio and transparency. Square outputs use transparent padding
-without cropping or flattening. The previous opaque source has been removed;
+to trim transparent outer whitespace before resizing with lossless PNG compression,
+preserving the full visible circle, colors, aspect ratio and transparency. Trimming
+ignores alpha-1 noise and retains a two-source-pixel guard around the logo. Square
+outputs add approximately 6.25% transparent padding per side (rounded to pixels).
+The source artwork is unchanged and no background flattening is used.
+The previous opaque source has been removed;
 only this source and the four required generated assets are retained.
 Committed assets in `public/` are `favicon.ico`
 (16/32/48px PNG frames), `favicon-16x16.png`, `favicon-32x32.png`, and
 `apple-touch-icon.png` (180px). The shared public `BaseLayout.astro` head links
 all four, including on 404. No manifest, PWA behavior or new dependency is added.
 The built SEO audit verifies links on every public page, copied asset bytes,
-PNG/ICO dimensions, alpha channels and transparent corners, file size budgets and
+PNG/ICO dimensions, alpha channels, transparent borders, visible artwork coverage, file size budgets and
 successful production-runtime image responses, including `/favicon.ico`.
 
 Verification: all 126 tests pass; Astro/type checks have zero diagnostics; the
 production build and extended `npm run test:seo` pass. The generated PNGs and all
-ICO frames preserve transparency around the artwork.
+ICO frames preserve transparency around the artwork. The visible bounding boxes
+are 14×14px on the 16px canvas and 28×28px on the 32px canvas: 87.5% of each axis
+and 76.6% of canvas area. Coverage checks reject the previous tiny-logo output.
 
 ## Hosting and deployment direction
 

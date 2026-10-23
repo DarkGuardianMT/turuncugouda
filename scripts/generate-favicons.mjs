@@ -3,9 +3,17 @@ import sharp from 'sharp';
 
 const source = 'src/assets/faviconturuncu.png';
 const sizes = [16, 32, 48, 180];
-const images = await Promise.all(sizes.map((size) => sharp(source)
-  .resize(size, size, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
-  .ensureAlpha().png({ compressionLevel: 9 }).toBuffer()));
+const background = { r: 0, g: 0, b: 0, alpha: 0 };
+// Negeer vrijwel onzichtbare alpha-1-spikkels; behoud een bronmarge rond de volledige cirkel.
+const trimmed = await sharp(source).trim({ background, threshold: 1, margin: 2 }).toBuffer();
+const images = await Promise.all(sizes.map((size) => {
+  const margin = Math.max(1, Math.round(size / 16));
+  const artworkSize = size - 2 * margin;
+  return sharp(trimmed)
+    .resize(artworkSize, artworkSize, { fit: 'contain', background })
+    .extend({ top: margin, bottom: margin, left: margin, right: margin, background })
+    .ensureAlpha().png({ compressionLevel: 9 }).toBuffer();
+}));
 
 await mkdir('public', { recursive: true });
 for (const [index, name] of [[0, 'favicon-16x16.png'], [1, 'favicon-32x32.png'], [3, 'apple-touch-icon.png']]) {
