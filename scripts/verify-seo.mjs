@@ -8,6 +8,7 @@ import { once } from 'node:events';
 import { createHash, randomBytes } from 'node:crypto';
 import config from '../astro.config.mjs';
 import { hashPassword } from '../src/server/admin/password.mjs';
+import sharp from 'sharp';
 
 const root = 'dist/client';
 const origin = new URL(config.site).origin;
@@ -20,6 +21,12 @@ const routes = new Map([
   ['/privacy', [`Privacy | ${businessName}`, 'privacy/index.html']],
   ['/404', [`Pagina niet gevonden | ${businessName}`, '404.html']],
 ]);
+const faviconLinks = [
+  { rel: 'icon', type: 'image/x-icon', sizes: '16x16 32x32 48x48', href: '/favicon.ico' },
+  { rel: 'icon', type: 'image/png', sizes: '16x16', href: '/favicon-16x16.png' },
+  { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/favicon-32x32.png' },
+  { rel: 'apple-touch-icon', type: 'image/png', sizes: '180x180', href: '/apple-touch-icon.png' },
+];
 const decode = (text) => text.replace(/&(?:amp|quot|#39|#x27|lt|gt);/g, (entity) => ({ '&amp;': '&', '&quot;': '"', '&#39;': "'", '&#x27;': "'", '&lt;': '<', '&gt;': '>' })[entity]);
 function attributes(tag) {
   return Object.fromEntries([...tag.matchAll(/([\w:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g)].map((match) => [match[1], decode(match[2] ?? match[3])]));
@@ -47,6 +54,9 @@ let imageCount = 0;
 for (const [path, [title, file]] of routes) {
   const html = await readFile(`${root}/${file}`, 'utf8'); htmlByPath.set(path, html);
   const head = html.match(/<head\b[^>]*>([\s\S]*?)<\/head>/)[1];
+  const icons = [...head.matchAll(/<link\b[^>]*>/g)].map((match) => attributes(match[0]))
+    .filter((entry) => entry.rel === 'icon' || entry.rel === 'apple-touch-icon');
+  assert.deepEqual(icons, faviconLinks, `Shared favicon links on ${path}`);
   assert.ok(html.includes('lang="nl"'));
   assert.equal(decode(head.match(/<title>([\s\S]*?)<\/title>/)[1]), title);
   const description = meta(head, 'description'); assert.ok(description.length > 50 && description.length < 200);
@@ -97,6 +107,31 @@ for (const [path, [title, file]] of routes) {
   }
 }
 for (const image of imageUrls) assert.ok((await stat(`${root}${new URL(image).pathname}`)).size > 0);
+
+for (const icon of faviconLinks) {
+  const bytes = await readFile(`${root}${icon.href}`);
+  assert.deepEqual(bytes, await readFile(`public${icon.href}`), `Favicon copied unchanged: ${icon.href}`);
+  assert.ok(bytes.length > 0 && bytes.length < (icon.rel === 'apple-touch-icon' ? 40_000 : 10_000), 'Optimized icon size');
+  if (icon.href.endsWith('.png')) {
+    const metadata = await sharp(bytes).metadata();
+    const size = Number(icon.sizes.split('x')[0]);
+    assert.equal(metadata.format, 'png');
+    assert.equal(metadata.width, size); assert.equal(metadata.height, size);
+  } else {
+    assert.equal(bytes.readUInt16LE(0), 0); assert.equal(bytes.readUInt16LE(2), 1);
+    assert.equal(bytes.readUInt16LE(4), 3);
+    for (const [index, size] of [16, 32, 48].entries()) {
+      const entry = 6 + index * 16;
+      assert.equal(bytes[entry], size); assert.equal(bytes[entry + 1], size);
+      const length = bytes.readUInt32LE(entry + 8);
+      const offset = bytes.readUInt32LE(entry + 12);
+      assert.ok(offset >= 54 && length > 0 && offset + length <= bytes.length);
+      const metadata = await sharp(bytes.subarray(offset, offset + length)).metadata();
+      assert.equal(metadata.format, 'png');
+      assert.equal(metadata.width, size); assert.equal(metadata.height, size);
+    }
+  }
+}
 for (const [path, html] of htmlByPath) {
   for (const match of html.matchAll(/<a\b[^>]*href="([^"]+)"[^>]*>/g)) {
     const href = decode(match[1]); if (!href.startsWith('/') && !href.startsWith('#')) continue;
@@ -188,6 +223,14 @@ try {
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
   assert.ok(ready, 'Built runtime starts without database credentials');
+  for (const icon of faviconLinks) {
+    const response = await fetch(`${base}${icon.href}`, { redirect: 'manual' });
+    assert.equal(response.status, 200, `Production favicon route: ${icon.href}`);
+    assert.match(response.headers.get('content-type') ?? '', icon.href.endsWith('.ico')
+      ? /^image\/(?:x-icon|vnd\.microsoft\.icon)(?:;|$)/ : /^image\/png(?:;|$)/);
+    assert.deepEqual(Buffer.from(await response.arrayBuffer()), await readFile(`public${icon.href}`));
+  }
+  console.log('PASS: shared favicon links on every public page, PNG/ICO dimensions and size budgets, and all four production icon URLs with matching image responses.');
   for (const path of routes.keys()) {
     const response = await fetch(`${base}${path}`, { redirect: 'manual' });
     assert.equal(response.status, path === '/404' ? 404 : 200);

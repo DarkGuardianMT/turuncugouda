@@ -486,6 +486,24 @@ has zero errors, warnings or hints. `npm run build` and `npm run test:seo` pass,
 including public-output SMTP leakage checks and the existing proxy HTTP regressions.
 No live email was sent and no database records or private environment files changed.
 
+## Site favicon (23 October 2026)
+
+The owner-supplied `src/assets/turuncufavicon.png` is retained unchanged as the
+favicon source. `npm run favicon:generate` uses the existing Sharp installation
+to resize the whole square artwork with lossless PNG compression, preserving
+its colors and white background. Committed assets in `public/` are `favicon.ico`
+(16/32/48px PNG frames), `favicon-16x16.png`, `favicon-32x32.png`, and
+`apple-touch-icon.png` (180px). The shared public `BaseLayout.astro` head links
+all four, including on 404. No manifest, PWA behavior or new dependency is added.
+The built SEO audit verifies links on every public page, copied asset bytes,
+PNG/ICO dimensions, file size budgets and successful production-runtime image
+responses, including `/favicon.ico`.
+
+Verification: all 126 tests pass; Astro/type checks have zero diagnostics; the
+production build and extended `npm run test:seo` pass. Generated sizes are 717
+bytes (16px PNG), 1,961 bytes (32px PNG), 30,279 bytes (180px PNG), and 6,426
+bytes (ICO). The 32px and Apple touch icon previews preserve the source artwork.
+
 ## Hosting and deployment direction
 
 Use GitHub for version control. Production runs on Hostinger's Node standalone
@@ -546,8 +564,7 @@ deployment operations remain separate work.
   visible navigation fallback when JavaScript is disabled. A skip link and visible
   focus styles are included.
 - Strict TypeScript configuration and npm development, check, build, and preview scripts.
-- `public/` is available for future static assets and currently empty. Git does not
-  track empty directories; create it when adding assets in a fresh clone.
+- `public/` contains the generated favicon set, copied to the build's client root.
 - `src/assets/` contains the untouched supplied logo, photographs, and menu references.
 - Root `AGENTS.md` and this document provide persistent project guidance.
 - Build output, Astro generated types, dependencies, logs, and local environment

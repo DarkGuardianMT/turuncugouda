@@ -13,6 +13,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "start": "node ./dist/server/entry.mjs",
+    "favicon:generate": "node scripts/generate-favicons.mjs",
     "db:migrate": "node --env-file-if-exists=.env scripts/migrate.mjs",
     "reservations:cleanup": "node --env-file-if-exists=.env --experimental-strip-types scripts/cleanup-reservations.mjs",
     "admin:hash-password": "node scripts/admin-hash-password.mjs",
