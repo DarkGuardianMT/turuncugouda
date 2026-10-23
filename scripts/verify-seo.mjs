@@ -128,16 +128,16 @@ assert.deepEqual(files.filter((path) => path.endsWith('.html')).sort(), [...rout
 const scripts = files.filter((file) => /\.m?js$/.test(file)); let totalJs = 0;
 for (const file of scripts) {
   const size = (await stat(file)).size; assert.ok(size < 100 * 1024, 'Unexpectedly large public JS asset'); totalJs += size;
-  assert.ok(!/ADMIN_PASSWORD_HASH|ADMIN_SESSION_SECRET|DB_PASSWORD/.test(await readFile(file, 'utf8')));
+  assert.ok(!/ADMIN_PASSWORD_HASH|ADMIN_SESSION_SECRET|DB_PASSWORD|SMTP_|RESERVATION_NOTIFICATION_TO/.test(await readFile(file, 'utf8')));
 }
 for (const content of inlineScripts.values()) {
-  assert.ok(!/ADMIN_PASSWORD_HASH|ADMIN_SESSION_SECRET|DB_PASSWORD/.test(content));
+  assert.ok(!/ADMIN_PASSWORD_HASH|ADMIN_SESSION_SECRET|DB_PASSWORD|SMTP_|RESERVATION_NOTIFICATION_TO/.test(content));
   assert.ok(Buffer.byteLength(content) < 100 * 1024); totalJs += Buffer.byteLength(content);
 }
 assert.ok(totalJs < 256 * 1024);
 let environment = {};
 try { environment = parseEnv(await readFile('.env', 'utf8')); } catch (error) { if (error.code !== 'ENOENT') throw error; }
-const secrets = ['DB_PASSWORD', 'ADMIN_PASSWORD_HASH', 'ADMIN_SESSION_SECRET', 'MAINTENANCE_DB_PASSWORD'].map((key) => environment[key]).filter((value) => value?.length >= 6);
+const secrets = ['DB_PASSWORD', 'ADMIN_PASSWORD_HASH', 'ADMIN_SESSION_SECRET', 'MAINTENANCE_DB_PASSWORD', 'SMTP_PASSWORD'].map((key) => environment[key]).filter((value) => value?.length >= 6);
 for (const file of await filesUnder('dist')) {
   if (!/\.(html|js|mjs|css|json|xml|txt)$/.test(file)) continue;
   const content = await readFile(file, 'utf8'); for (const secret of secrets) assert.ok(!content.includes(secret), 'Private configuration must not be baked into output');

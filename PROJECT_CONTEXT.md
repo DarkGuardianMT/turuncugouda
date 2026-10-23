@@ -255,8 +255,8 @@ Origin mismatches fail closed; no arbitrary forwarded-header trust is introduced
 
 Production rate limiting remains required before public launch; the public API has
 no in-memory/distributed limiter or CAPTCHA. The separate admin workflow below has
-a local login safeguard. Email, capacity management, and chatbot implementation
-are deferred. Privacy, retention,
+a local login safeguard. Internal SMTP notifications are now implemented below;
+guest email, capacity management, and chatbot implementation remain deferred. Privacy, retention,
 deletion, and any further spam protection remain production decisions.
 
 ## Minimal local reservation admin (19 October 2026)
@@ -450,6 +450,42 @@ Verification: 102 tests pass; Astro/type checks have zero diagnostics; the produ
 build and `npm run test:seo`, including the proxy HTTP regressions, pass. No database
 rows, migrations, production credentials, menu data or source assets were changed.
 
+## Reservation notification email (23 October 2026)
+
+- `POST /api/reservations` awaits one internal Nodemailer notification only after
+  the existing parameterized MySQL INSERT succeeds. Database state is authoritative:
+  SMTP/configuration failures never roll back/delete the row or change HTTP 201
+  `{ success: true, reservationId, status: 'pending' }`.
+- `src/server/reservations/notificationEmail.ts` imports `astro:env/server` and reads
+  `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, and
+  `RESERVATION_NOTIFICATION_TO` only on use. Public rendering/builds need no SMTP
+  configuration. No values are public/Vite env or hardcoded application defaults.
+- Production configuration provided by the owner is Hostinger `smtp.hostinger.com`,
+  port 465, direct TLS (`secure: true`), user/sender
+  `reserveringen@turuncugouda.com`, recipient `turuncugouda@gmail.com`. The password
+  is supplied only through the private runtime environment. These internal addresses
+  are not added to public contact content or metadata. `.env.example` has placeholders.
+- Subject is `Nieuwe reserveringsaanvraag`. Dutch plain text includes normalized
+  name, requested date/time, party size, phone, optional email/message and
+  `Status: In afwachting`. No guest confirmation or admin-status emails are added.
+- Failures log only `Reservation notification failed: SMTP_NOTIFICATION_FAILED`.
+  Provider errors, credentials and customer fields are never logged. SMTP logging
+  is disabled; stage/idle timeouts limit stalled attempts. There is no retry queue,
+  automatic resend or inbox-delivery guarantee. Admin remains the source of requests.
+- Automated tests exercise the real route/INSERT/mail services with mocked DB/SMTP
+  boundaries, including missing settings, optional fields, error isolation and
+  unchanged responses. No live SMTP send or production environment change is part
+  of this implementation. Production mailbox receipt still needs verification.
+- Development documentation records the mail flow and configuration. Database
+  anonymization does not remove notification copies in email mailboxes. Existing
+  validation, migrations, admin authentication, origin/proxy rules and business
+  content are unchanged.
+
+Verification: all 126 tests pass (including 19 notification tests); `npm run check`
+has zero errors, warnings or hints. `npm run build` and `npm run test:seo` pass,
+including public-output SMTP leakage checks and the existing proxy HTTP regressions.
+No live email was sent and no database records or private environment files changed.
+
 ## Hosting and deployment direction
 
 Use GitHub for version control. Production runs on Hostinger's Node standalone
@@ -474,7 +510,7 @@ implemented or selected for it yet.
 
 - Vue integration, React, Tailwind, UI/component and animation libraries
 - Sanity or another CMS, Supabase, and unrelated backend/API services
-- Capacity management and email notifications
+- Capacity management, guest confirmation emails and SMS notifications
 - Owner confirmation of remaining menu prices/product wording and High Tea conditions
 - AI chatbot implementation
 
@@ -484,8 +520,9 @@ Public-facing frontend v1 feature implementation is functionally complete after
 the focused polish checkpoint of 15 October 2026. Browser acceptance of this pass
 and the remaining owner content confirmations are still outstanding. Phase 2 now
 includes the verified reservation backend and connected public request form;
-the minimal local admin workflow is implemented. Email, CMS, deployment, and chatbot
-remain separate future tasks.
+the minimal local admin workflow and internal SMTP notifications are implemented.
+Guest email, CMS and chatbot remain future tasks; production SMTP acceptance and
+deployment operations remain separate work.
 
 - Official minimal Astro starter incorporated in the existing repository root.
 - Existing README identity and Git history preserved; README expanded for developers.

@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { createReservation } from '../../server/reservations/reservationService';
+import { sendReservationNotification } from '../../server/reservations/notificationEmail';
 import { validateReservation } from '../../server/reservations/validation';
 import { DatabaseConfigurationError } from '../../server/db/config.mjs';
 import { isAllowedReservationOrigin, preparePublicReservationInput } from '../../server/reservations/requestGuards';
@@ -66,9 +67,9 @@ export const POST: APIRoute = async ({ request }) => {
     } }, 400);
   }
 
+  let reservation: Awaited<ReturnType<typeof createReservation>>;
   try {
-    const reservation = await createReservation(validated.data);
-    return json({ success: true, reservationId: reservation.id, status: reservation.status }, 201);
+    reservation = await createReservation(validated.data);
   } catch (cause) {
     // Driverberichten kunnen SQL en persoonsgegevens bevatten; log alleen een foutcode.
     const code = cause && typeof cause === 'object' && 'code' in cause ? String(cause.code) : '';
@@ -76,6 +77,14 @@ export const POST: APIRoute = async ({ request }) => {
       ? cause.message : /^[A-Z0-9_]{1,64}$/.test(code) ? code : 'INTERNAL_ERROR');
     return error(500, 'INTERNAL_ERROR', 'Reserveren is tijdelijk niet mogelijk. Probeer het later opnieuw.');
   }
+
+  try {
+    await sendReservationNotification(validated.data);
+  } catch {
+    // De aanvraag is al opgeslagen; log nooit providerberichten of persoonsgegevens.
+    console.error('Reservation notification failed:', 'SMTP_NOTIFICATION_FAILED');
+  }
+  return json({ success: true, reservationId: reservation.id, status: reservation.status }, 201);
 };
 
 export const ALL: APIRoute = () => json({ success: false, error: {

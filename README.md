@@ -14,6 +14,8 @@ browser acceptance and production safeguards still require review.
   photo gallery with category filters and a keyboard-accessible native lightbox.
 - Reservation form with server validation, a honeypot and a create-only JSON API.
   Requests start as pending; visitors cannot list records or choose their status.
+- One internal Dutch email notification via Nodemailer/SMTP after each successful
+  public reservation insert. Mail failures preserve the reservation and API success.
 - Single-admin login with scrypt password hashing, signed HttpOnly sessions,
   strict Origin checks and session-bound CSRF protection for authenticated actions.
   Admins can filter requests and confirm or cancel them with stale-update checks.
@@ -26,7 +28,8 @@ browser acceptance and production safeguards still require review.
   a public-only sitemap, robots.txt and a custom 404. Admin responses are private
   and excluded from public indexing metadata.
 
-Email/SMS notifications, capacity management, a CMS and a chatbot are not implemented.
+Guest confirmation emails, SMS notifications, capacity management, a CMS and a
+chatbot are not implemented.
 
 ## Stack and architecture
 
@@ -34,6 +37,7 @@ Email/SMS notifications, capacity management, a CMS and a chatbot are not implem
   Node standalone adapter for reservation and admin runtime routes.
 - **MySQL/MariaDB + mysql2:** parameterized queries, versioned SQL migrations,
   lazy server-only connection pooling and separate runtime/maintenance privileges.
+- **Nodemailer:** server-only SMTP with direct TLS for internal reservation alerts.
 - **Plain CSS + vanilla TypeScript:** focused browser interactions; business
   content stays in local typed data files. No client framework or ORM.
 - **Native Node tests:** validation, form behavior, authentication, CSRF, status
@@ -58,8 +62,15 @@ npm run dev
 
 Open `http://localhost:4321`. Public pages work without database credentials.
 To submit reservations or use admin, copy `.env.example` to ignored `.env` and
-configure your own local database and admin credentials following the
+configure your own local database, SMTP and admin credentials following the
 [development guide](docs/DEVELOPMENT.md). Never use real customer data in tests.
+
+Notifications use server-only `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`,
+`SMTP_FROM` and `RESERVATION_NOTIFICATION_TO`. Production uses Hostinger SMTP on
+port 465 with direct TLS. Configuration is checked only after a successful insert;
+missing settings or failed delivery log a fixed safe code and still return HTTP 201.
+See the [SMTP setup and mail flow](docs/DEVELOPMENT.md#reservation-notification-email)
+for production values and delivery behavior. Builds and `npm test` never send real mail.
 
 | Command | Purpose |
 | --- | --- |

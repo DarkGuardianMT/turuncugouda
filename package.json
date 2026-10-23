@@ -26,13 +26,15 @@
     "@astrojs/node": "^11.1.8",
     "@astrojs/sitemap": "^3.7.4",
     "astro": "^7.3.6",
-    "mysql2": "^3.24.6"
+    "mysql2": "^3.24.6",
+    "nodemailer": "^10.2.1"
   },
   "allowScripts": {
     "esbuild": true
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
+    "@types/nodemailer": "^8.0.2",
     "typescript": "^6.0.3"
   }
 }

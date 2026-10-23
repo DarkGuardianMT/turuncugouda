@@ -94,6 +94,10 @@ transport-only `contact_url` honeypot is removed before reservation validation;
 nonempty or non-string values return a generic 400 `INVALID_REQUEST` without
 creating a row or describing the trap. No public read/list endpoint exists.
 
+After a successful insert, the API awaits one internal SMTP notification attempt.
+Its result never changes the HTTP 201 contract or the stored `pending` reservation;
+see [notification setup](#reservation-notification-email).
+
 Validation returns 400 with `error.code: "VALIDATION_ERROR"` and `error.fields`;
 malformed JSON returns 400, unsupported content types 415, bodies above the 16 KiB
 technical limit 413, and other HTTP methods 405 with `Allow: POST`. Database/server
@@ -123,7 +127,7 @@ The form locks submission during a request, associates inline errors with contro
 and replaces itself with a request-received panel on HTTP 201. Personal fields
 are reset, the summary contains only date/time/party size, and no database ID is
 displayed. Requests remain pending until Turuncu confirms them. No automatic
-confirmation or email is implemented. The separate admin workflow is described
+confirmation or email is sent to the guest. The separate admin workflow is described
 below. Without JavaScript the form stays disabled to prevent accidental non-JSON
 submission; phone, Instagram,
 and Contact remain usable. A concise purpose-of-use note is shown near Submit.
@@ -151,7 +155,7 @@ protection is introduced. See Astro's
 
 Real production rate limiting remains required before public launch. The public
 endpoint has no in-memory/distributed limiter or CAPTCHA. Assess additional spam
-protection if needed and define privacy/retention/deletion policy. Email, chatbot,
+protection if needed and define privacy/retention/deletion policy. Guest email, chatbot,
 capacity management, and deployment remain later checkpoints.
 
 ## Local reservation admin setup
@@ -185,7 +189,7 @@ are also displayed in Europe/Amsterdam. Status links use validated URL filters:
 Alle, In afwachting, Bevestigd, Geannuleerd. Cards show contact links and escaped
 customer messages. Pending requests can be confirmed/cancelled; confirmed ones can
 be cancelled. Cancelled requests remain stored. Updates compare the expected current
-status and report stale submissions instead of overwriting. No email or SMS is sent:
+status and report stale submissions instead of overwriting. Admin status actions send no email or SMS:
 the administrator must contact the guest separately.
 
 Passwords use Node scrypt (N=32768, r=8, p=1), a random 32-byte salt and a 64-byte
@@ -239,16 +243,68 @@ For manual login, set your own hash using the interactive helper above.
 Production acceptance still requires verifying HTTPS/proxy Origin reconstruction,
 Secure cookies, trusted client IPs, authentication hardening
 and durable upstream rate limiting before launch. Privacy/retention/deletion rules
-remain unresolved. Future notifications may use Hostinger SMTP once available;
-database state remains authoritative and future email failure must not roll back a
-successful reservation/status update. No SMTP dependency or settings are added now.
+remain unresolved. New public requests trigger the internal SMTP notification below;
+admin status updates send no mail. The administrator still contacts guests separately.
+
+## Reservation notification email
+
+Nodemailer sends an internal plain-text Dutch notification after a successful
+`POST /api/reservations` insert. Set these **server process environment** values
+in Hostinger; `.env.example` contains placeholders only:
+
+| Variable | Production value |
+| --- | --- |
+| `SMTP_HOST` | `smtp.hostinger.com` |
+| `SMTP_PORT` | `465` |
+| `SMTP_USER` | `reserveringen@turuncugouda.com` |
+| `SMTP_PASSWORD` | The mailbox password, supplied privately through the environment only |
+| `SMTP_FROM` | `reserveringen@turuncugouda.com` |
+| `RESERVATION_NOTIFICATION_TO` | `turuncugouda@gmail.com` |
+
+All six variables are required for mail. They are read with `astro:env/server`
+only when the mail service is called. Never use `PUBLIC_`, `VITE_`, client scripts,
+or a checked-in environment file for these values. Use plain single email addresses
+for From and recipient. The client always uses `secure: true` (direct SSL/TLS),
+with normal certificate validation; use port 465 for Hostinger. No credentials,
+addresses or SMTP host are hardcoded in application code. See the official
+[Nodemailer SMTP options](https://nodemailer.com/smtp).
+
+The exact flow is validation → parameterized MySQL INSERT with status `pending`
+→ one awaited `sendMail` attempt → the existing HTTP 201 JSON response. The message
+has subject `Nieuwe reserveringsaanvraag`, From `SMTP_FROM`, and a single recipient
+`RESERVATION_NOTIFICATION_TO`. It includes name, date (DD-MM-YYYY), time, guest
+count, phone, optional email/message and `Status: In afwachting`. Optional fields
+are omitted when empty. Customer input is used only in the plain-text body, never
+in recipient or subject headers. No guest email or admin-status notification is sent.
+
+A failed insert never sends mail. Missing/invalid SMTP settings, transport setup
+errors and SMTP rejection/timeouts are caught separately after storage. They never
+delete/roll back a row or change API success. Only the fixed diagnostic
+`Reservation notification failed: SMTP_NOTIFICATION_FAILED` is logged; no error
+object, provider response, credentials or reservation fields are logged. SMTP
+debugging is disabled. Connection/DNS/greeting timeouts are 5 seconds and the idle
+socket timeout is 10 seconds, so an unavailable provider does not use Nodemailer's
+long defaults. The response waits for the attempt; these are stage/idle timeouts,
+not a total delivery deadline. There is no retry queue or automatic resend. SMTP
+acceptance does not guarantee inbox delivery; stored requests remain visible in admin.
+
+Public rendering, checks and builds require no SMTP configuration or connection.
+`npm test` uses synthetic environment values and mocked DB/SMTP boundaries to exercise
+the real API/services without sending mail or touching records. Production acceptance
+must separately verify the configured mailbox and receipt in Gmail with an authorized
+test request. Mail copies contain personal data; the manual database anonymization
+command does not remove copies from the sender/recipient mailboxes.
+
+The opt-in DB integration scripts run the built API and inherit the process
+environment. Leave SMTP unconfigured or use an isolated test SMTP inbox when running
+them locally; configured production SMTP would also receive their synthetic requests.
 
 ## Reservation privacy and manual retention maintenance
 
 `/privacy` describes reservation-data collection and use in Dutch and is linked
 from the reservation form and public footer. The exact retention period still
 requires owner approval before production launch. No automatic cleanup, cron,
-cookie banner, or notifications are added.
+cookie banner, or retention notifications are added.
 
 Migration `002_allow_reservation_anonymization.sql` makes `name` and `phone`
 nullable and adds nullable `anonymized_at`. Public requests still require name and
@@ -362,6 +418,7 @@ a local `.env` file:
 | --- | --- | --- |
 | Database | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | Required for reservation/admin DB access; use the production database and least-privilege runtime account |
 | Database | `DB_CONNECTION_LIMIT` | Optional pool bound, default 5; review against hosting limits |
+| SMTP | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, `RESERVATION_NOTIFICATION_TO` | Required for internal reservation alerts; use the Hostinger values above and supply the password privately |
 | Admin | `ADMIN_USERNAME`, `ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_SECRET` | Required for one admin; generate a production scrypt hash and fresh strong session secret, never reuse the temporary local credential |
 | Maintenance | `MAINTENANCE_DB_USER`, `MAINTENANCE_DB_PASSWORD` | Required only for explicit cleanup or `db:migrate -- --maintenance`; use separate credentials with appropriate operation-specific privileges |
 
@@ -390,7 +447,7 @@ All items below remain unverified launch requirements:
 - [ ] Durable production reservation/admin rate limiting is enabled; the process-local login limiter alone is insufficient.
 - [ ] Mobile/desktop browser acceptance is completed for navigation, gallery, form, privacy and 404.
 - [ ] Sitemap, robots.txt, canonical/social image URLs and structured data are checked on the deployed domain.
-- [ ] SMTP notifications are configured and tested only if desired once hosting/mail is available; they are currently absent.
+- [ ] Production SMTP environment values are configured and a new request's internal email is received in Gmail; failed delivery still preserves HTTP 201 and the pending record.
 
-SMTP setup, deployment, durable rate limiting and automatic retention scheduling
-are separate tasks. No SMTP variables, mail package or cron are introduced here.
+Production SMTP acceptance, deployment, durable rate limiting and automatic
+retention scheduling require separate operational work. No cron is configured.
