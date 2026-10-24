@@ -42,6 +42,7 @@ Homepage `/` (redesign approved for publication on 23 October 2026):
 - Hero
 - Product-name ticker in dark Turuncu orange with warm cream text
 - Compact nine-image favorites preview; the section label is screen-reader-only
+- High Tea highlight with approved temporary AI image
 - Over ons
 - Contact, reservations guidance, and opening information
 - Footer
@@ -118,7 +119,8 @@ Real supplied assets are kept under `src/assets/`. Local imports and Astro's
 `Image` component generate optimized responsive WebP images with Dutch alt text,
 explicit sizes and intrinsic dimensions. Only the primary hero photo is eager
 and high priority; other photos are lazy loaded. Generated widths are capped at
-source resolution. No external or generated photography is used.
+source resolution. The general gallery uses real supplied photography. The approved
+High Tea highlight alone uses an owner-supplied temporary AI image.
 
 Main assignments: `borek-coffee.webp` for the contained 4:3 hero, `latte-art.webp`
 for Café, `ig-08.webp` for Bakkerij, `menemen.webp` for Lunch, and
@@ -525,6 +527,37 @@ production build and extended `npm run test:seo` pass. The generated PNGs and al
 ICO frames preserve transparency around the artwork. The visible bounding boxes
 are 14×14px on the 16px canvas and 28×28px on the 32px canvas: 87.5% of each axis
 and 76.6% of canvas area. Coverage checks reject the previous tiny-logo output.
+
+## Approved High Tea highlight (24 October 2026)
+
+The owner approved the temporary AI image and warm-brown design and authorized
+committing and pushing the highlight to main after final checks.
+
+- `HighTeaHighlight` sits immediately after favorites and before Over Turuncu;
+  the surrounding sections are unchanged. The exact owner-provided copy is
+  `HIGH TEA`, `High Tea bij Turuncu`, `Vanaf 2 personen`,
+  `Reserveer minimaal 48 uur van tevoren`, and `High Tea reserveren`.
+  The single CTA links to `/reserveren`; no prices or additional conditions are added.
+- Temporary image: owner-supplied AI artwork `src/assets/photos/high-tea-ai.png`,
+  showing a tiered stand with sweet/savoury bites and tea. The original photos
+  and gallery are unchanged.
+  The source stays untouched. Astro supplies lazy WebP widths 320/480/640/960/1200px;
+  CSS uses cover with `object-position: 65% 25%` to retain the stand and its top.
+- A 50/50 image/content grid from 768px stacks image first on mobile. The image
+  uses a 3:2 mobile frame and the desktop grid has a 416px minimum height.
+  The warmer dark-brown panel is `#2b1d17`, text/CTA are existing cream `#f6eddf`, and a small
+  decorative line uses orange `#d65b1c`. Headings retain Georgia; the CTA has a
+  cream focus outline, normal 48px minimum height and no new JavaScript.
+- Built verification checks placement, exact copy, one CTA, the supplied image,
+  lazy loading and absence of prices. Reservation behavior and menu data are unchanged.
+- The AI variant passes the same 136 tests, zero-diagnostic Astro checks, build
+  and SEO/HTTP checks. Chrome review at 390/768/1440/1920px confirms balanced
+  crops with the three-tier stand and handle retained, unchanged spacing/copy,
+  no horizontal overflow and zero console messages. The cream/brown contrast
+  is 14.02:1; keyboard focus stays visible and the CTA opens `/reserveren`.
+  The 2,204,445-byte, 1448×1086px PNG is retained for regeneration, while public
+  previews are optimized WebPs (approximately 19–121KB). No new dependency is added.
+  Review screenshots remain ignored under `.tmp/ui-review/high-tea-ai-*.png`.
 
 ## Approved contact redesign (24 October 2026)
 

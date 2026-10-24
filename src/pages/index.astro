@@ -9,6 +9,7 @@ import { favorites } from '../data/favorites';
 import GalleryLightbox from '../components/GalleryLightbox.astro';
 import ProductTicker from '../components/ProductTicker.astro';
 import ContactVisit from '../components/ContactVisit.astro';
+import HighTeaHighlight from '../components/HighTeaHighlight.astro';
 import { businessStructuredData } from '../lib/seo';
 if (!Astro.site) throw new Error('Missing canonical site configuration.');
 const favoritePhotos = favorites.flatMap(({ photos: groupPhotos }) => groupPhotos);
@@ -44,6 +45,8 @@ const favoritePhotos = favorites.flatMap(({ photos: groupPhotos }) => groupPhoto
         <GalleryLightbox />
       </div>
     </section>
+
+    <HighTeaHighlight />
 
     <Section id="over-ons" title="Over Turuncu" eyebrow="Turuncu">
       <div class="split-content">
