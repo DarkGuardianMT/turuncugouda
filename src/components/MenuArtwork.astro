@@ -1,0 +1,36 @@
+---
+import { Image } from 'astro:assets';
+import { menuSheets } from '../data/menuArtwork';
+import MenuViewer from './MenuViewer.astro';
+---
+
+<section class="menu-artwork" aria-label="Gedrukte menukaart">
+  <div class="menu-sheets">
+    {menuSheets.map((image, index) => (
+      <button class="menu-sheet" type="button" disabled aria-label={`Open menukaart ${index + 1}`}
+        aria-haspopup="dialog" aria-controls="menu-viewer" data-menu-sheet={index}
+        data-menu-src={image.src} data-menu-width={image.width} data-menu-height={image.height}>
+        <Image src={image} alt={`Gedrukte menukaart ${index + 1} van 2. Tekstversie hieronder beschikbaar.`}
+          width={image.width} widths={[320, 480, 640, 800, 997]} format="webp" quality={90}
+          sizes="(min-width: 1472px) 688px, (min-width: 768px) calc((100vw - 96px) / 2), calc(100vw - 48px)"
+          loading="lazy" decoding="async" />
+      </button>
+    ))}
+  </div>
+  <noscript><p>Bekijk de menukaart als tekst hieronder.</p></noscript>
+  <MenuViewer />
+</section>
+
+<style>
+  .menu-artwork { margin-block: var(--space-1) var(--space-5); }
+  .menu-sheets { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-3); }
+  .menu-sheet {
+    display: block; width: 100%; padding: 0; overflow: hidden;
+    border: 0; border-radius: calc(var(--radius-small) / 2);
+    background: transparent; cursor: zoom-in;
+  }
+  .menu-sheet img { width: 100%; height: auto; }
+  @media (min-width: 48rem) {
+    .menu-sheets { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); align-items: start; }
+  }
+</style>

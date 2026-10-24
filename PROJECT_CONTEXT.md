@@ -148,16 +148,18 @@ The full gallery opens with food, coffee, bakery, lunch, and atmosphere. Small
 per-image presentation hints bring the latte cup into focus and preserve space
 above the portrait subject's head, without changing source assets.
 
-Both menu PNGs remain unchanged source/reference assets and are not displayed as
-the menu UI. The supplied manual extraction, with publication corrections provided
-by the user, is now implemented as the first structured digital menu. Gallery pagination,
+Both menu PNGs remain unchanged source/reference assets. The approved menu redesign
+uses two website-specific cropped sheets as its primary UI, with the existing structured
+digital menu in a collapsed disclosure below. The supplied manual extraction and
+publication corrections remain unchanged. Gallery pagination,
 and CMS remain deferred; the public reservation form is now connected separately.
 
 ### Digital menu
 
 `src/data/menu.ts` stores local typed groups, categories, descriptions, numeric
-prices, variants, supplements, and optional per-person units. `/menu` renders
-static semantic menu lists with six native category anchor links and sticky-header
+prices, variants, supplements, and optional per-person units. `/menu` retains
+static semantic menu lists with six native category anchor links inside the optional
+text disclosure, with sticky-header
 clearance. Original detailed category names remain visible under those groups.
 Shared Menu navigation now links to `/menu` with the existing active-page treatment.
 The local homepage favorites replace the previous Café/Bakkerij/Lunch highlights;
@@ -172,8 +174,11 @@ editable numeric per-person prices and a separate 48-hour reservation note.
 Seven unconfirmed Smoothies/Softies prices are stored as `null` and omitted from
 visitor-facing output, without placeholder text or guessed prices. Confirm those
 prices, the name “Warme sinass”, and current High Tea conditions with the owner.
-No CMS, extra client-side menu JavaScript, email address, or WhatsApp-only
-instruction is added to the menu; verified Contact remains authoritative.
+No CMS or business-data changes are included. The artwork viewer adds a
+small menu-only script; verified Contact remains authoritative. The printed artwork
+contains its original contact wording and some prices absent from the corrected
+structured data. Both versions are preserved in the owner-approved presentation;
+any future reconciliation requires verified business corrections.
 
 ### Gallery interaction
 
@@ -517,6 +522,75 @@ production build and extended `npm run test:seo` pass. The generated PNGs and al
 ICO frames preserve transparency around the artwork. The visible bounding boxes
 are 14×14px on the 16px canvas and 28×28px on the 32px canvas: 87.5% of each axis
 and 76.6% of canvas area. Coverage checks reject the previous tiny-logo output.
+
+## Approved printed-menu redesign (24 October 2026)
+
+The owner approved the menu redesign and authorized committing and pushing it to
+main after final verification. Main automatically deploys to Hostinger.
+The approved homepage, gallery, business data, backend and hosting settings are unchanged.
+
+- Original files `src/assets/menu/menu-1.png` (1,427,564 bytes) and `menu-2.png`
+  (977,921 bytes) are both 997×2000px and remain byte-for-byte unchanged.
+- The rejected four-card presentation, split assets and split generator are removed.
+  `node scripts/generate-menu-web.mjs` regenerates `src/assets/menu/menu-web-1.webp`
+  and `menu-web-2.webp`. Their individually inspected crop rectangles are
+  (x=0, y=382, width=997, height=1618) and (x=0, y=384, width=997, height=1616).
+  Only the redundant top flyer logo/title/Instagram branding is removed, leaving
+  roughly 32px above the highest category heading. Every remaining pixel through
+  the original bottom edge is retained, including contact and High Tea content.
+- Lossless WebP sizes are 894,762 and 582,280 bytes. The viewer uses these same
+  website crops at full resolution, never the flyer PNGs. Astro generates responsive
+  320/480/640/800/997px WebP previews at quality 90 from those cropped sources.
+- `MenuArtwork` renders two image-only native buttons. The desktop container caps
+  at 1408px, with two columns and 32px gaps from 768px. Mobile stacks the sheets,
+  with 24px gaps. No card borders, footer bars, labels or permanent overlays are used.
+  The semantic `Onze menukaart` H1 is centered, regular Georgia serif in existing
+  dark orange `#a83c0b`, at 22–28px, with 16px top padding and an 8px gap before
+  the artwork. No extra decoration adds height. Original flyer headers never
+  reappear in the viewer.
+- `MenuViewer` uses a separate native modal dialog and focused vanilla TypeScript
+  controller, leaving GalleryLightbox unchanged. Close, previous/next (wrapping),
+  zoom in/out, fit reset, count and zoom percentage stay outside the scroll stage.
+  Zoom is 100–400% of the fitted sheet in 50% steps, reset when changing sheets.
+  Desktop mouse/pen drag uses pointer capture; touch uses native overflow scrolling.
+  Pinch zoom is deliberately not implemented. Arrow keys change sheets, +/- zoom,
+  0 resets, Shift+arrows pan, and native Escape closes. Opening focuses Close;
+  closing restores the opener and the previous page overflow. Controls are at
+  least 44px, have Dutch labels and visible focus; image failure exposes a text fallback.
+- The native `Menukaart als tekst bekijken` details element is collapsed by default.
+  All 91 original items, notes, descriptions, variants, prices, missing prices and
+  category anchors remain rendered in HTML. `src/data/menu.ts` is unchanged, as
+  are MenuCategory/MenuPrice and the menu contact aside.
+- Asset tests check both original PNG hashes and every pixel below the two crop
+  boundaries. Viewer tests use the cropped-sheet dimensions and retain navigation,
+  close/focus, zoom/reset, pointer-capture/cancellation, native touch handoff and
+  error coverage. Built checks require two labelled triggers, exact cropped viewer
+  files, visual-before-text order, a collapsed disclosure and all structured menu data.
+- All 134 tests, Astro/type checks (zero diagnostics), build and SEO/HTTP checks pass.
+  Both generated crops have been visually inspected directly. Native Chrome responsive
+  review at 390/768/1440/1920px confirms intact headings, balanced sheets and no
+  horizontal page overflow. Full-page screenshots have exactly twice their CSS
+  viewport widths at the browser's 2x pixel density. The viewer uses cropped sheets
+  and retains zoom in/out/reset, pointer pan, next/previous, Escape and visible opener
+  focus return. The text disclosure opens/closes with Enter and retains its categories.
+  Console inspection shows no warning/error messages (two verbose messages hidden).
+  A stale local dev asset error cleared after invalidating the importing module;
+  the production build and generated image URLs also pass independently.
+- Final centered-heading review at 390/768/1440px confirms a single-line mobile
+  heading, unchanged tight artwork spacing and no horizontal overflow. Viewer zoom,
+  two-sheet navigation, Escape/focus return and keyboard text disclosure still work;
+  the console has no warning/error messages (three verbose messages hidden).
+  Final native screenshots are `.tmp/ui-review/menu-final-390.png`,
+  `menu-final-768.png`, `menu-final-1440.png` and `menu-final-console.png`.
+- Earlier full-page native Chrome screenshots are `.tmp/ui-review/menu-cropped-390.png`,
+  `menu-cropped-768.png`, `menu-cropped-1440.png` and `menu-cropped-1920.png`.
+  Additional native viewer/console evidence is `menu-cropped-viewer-native-390.png`
+  and `menu-cropped-console-native.png`. These ignored local artifacts include the
+  Astro dev toolbar; earlier four-card screenshots do not represent this version.
+  Source resolution limits sharpness beyond native pixels; a higher-resolution or
+  vector export would improve zoom detail. Physical touch hardware remains untested.
+- Printed-versus-text business wording/prices were preserved without corrections
+  in this presentation task; the owner approved publishing the presentation.
 
 ## Approved homepage redesign (23 October 2026)
 

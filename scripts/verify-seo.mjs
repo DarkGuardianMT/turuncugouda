@@ -10,6 +10,7 @@ import config from '../astro.config.mjs';
 import { hashPassword } from '../src/server/admin/password.mjs';
 import sharp from 'sharp';
 import { tickerProducts } from '../src/data/productTicker.ts';
+import { menu } from '../src/data/menu.ts';
 
 const root = 'dist/client';
 const origin = new URL(config.site).origin;
@@ -89,7 +90,7 @@ for (const [path, [title, file]] of routes) {
   assert.equal(new Set(scripts).size, scripts.length); scriptsByPath.set(path, scripts);
   for (const match of html.matchAll(/<img\b[^>]*>/g)) {
     const image = attributes(match[0]);
-    if (!image.src) { assert.ok(image.class?.includes('lightbox-image')); continue; }
+    if (!image.src) { assert.ok(image.class?.includes('lightbox-image') || image.class?.includes('menu-viewer-image')); continue; }
     imageCount++; assert.ok('alt' in image && image.alt.length > 0);
     assert.ok(Number(image.width) > 0 && Number(image.height) > 0);
     assert.ok(image.loading === 'lazy' || (path === '/' && image.fetchpriority === 'high' && image.loading === 'eager'));
@@ -169,10 +170,50 @@ for (const [path, html] of htmlByPath) {
     if (target.hash) assert.ok(htmlByPath.get(targetPath).includes(`id="${decodeURIComponent(target.hash.slice(1))}"`), `Anchor exists: ${href}`);
   }
 }
-for (const path of ['/privacy', '/404']) assert.deepEqual(scriptsByPath.get(path), scriptsByPath.get('/menu'));
+for (const path of ['/404']) assert.deepEqual(scriptsByPath.get(path), scriptsByPath.get('/privacy'));
 assert.deepEqual(scriptsByPath.get('/'), scriptsByPath.get('/galerij'), 'Homepage reuses the same gallery lightbox script');
-assert.equal(scriptsByPath.get('/').length, scriptsByPath.get('/menu').length + 1);
-assert.equal(scriptsByPath.get('/reserveren').length, scriptsByPath.get('/menu').length + 1);
+for (const path of ['/', '/menu', '/reserveren']) assert.equal(scriptsByPath.get(path).length, scriptsByPath.get('/privacy').length + 1);
+
+const menuPage = htmlByPath.get('/menu');
+assert.match(menuPage, /<h1\b[^>]*>Onze menukaart<\/h1>/);
+const visualStart = menuPage.indexOf('class="menu-artwork"');
+const textStart = menuPage.indexOf('<details');
+assert.ok(visualStart > 0 && textStart > visualStart, 'Visual menu precedes the text disclosure');
+const disclosure = menuPage.slice(textStart, menuPage.indexOf('</details>', textStart));
+assert.ok(!/^<details[^>]*\bopen\b/.test(disclosure), 'Text menu is collapsed by default');
+assert.ok(disclosure.includes('Menukaart als tekst bekijken'));
+assert.ok(disclosure.includes('id="menu-categorieen"') && !menuPage.slice(0, visualStart).includes('id="menu-categorieen"'));
+const sheetTriggers = [...menuPage.matchAll(/<button\b[^>]*data-menu-sheet="(\d)"[^>]*>/g)];
+assert.deepEqual(sheetTriggers.map((entry) => Number(entry[1])), [0, 1]);
+for (const [index, match] of sheetTriggers.entries()) {
+  const attrs = attributes(match[0]);
+  assert.equal(attrs['aria-label'], `Open menukaart ${index + 1}`); assert.equal(attrs['aria-controls'], 'menu-viewer');
+  assert.equal(Number(attrs['data-menu-width']), 997); assert.equal(Number(attrs['data-menu-height']), index === 0 ? 1618 : 1616);
+  assert.deepEqual(await readFile(`${root}${attrs['data-menu-src']}`), await readFile(`src/assets/menu/menu-web-${index + 1}.webp`), 'Viewer receives the full-resolution website crop, without the flyer header');
+}
+const artworkPreview = menuPage.slice(visualStart, menuPage.indexOf('<dialog', visualStart));
+assert.equal((artworkPreview.match(/<img\b/g) ?? []).length, 2);
+assert.ok(!/menu-panel-hint|menu-artwork-help|Vergroten|Deel [1-4]/.test(artworkPreview), 'No visible labels, footer bars or explanatory text');
+assert.equal((menuPage.match(/<dialog\b[^>]*id="menu-viewer"/g) ?? []).length, 1);
+for (const control of ['close', 'previous', 'next', 'zoom-in', 'zoom-out', 'reset']) assert.ok(menuPage.includes(`data-menu-${control}`));
+const textContent = decode(disclosure.replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ');
+const priceFormat = new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' });
+function checkMenuOption(option) {
+  assert.ok(textContent.includes(option.name), `Text menu retains ${option.name}`);
+  if (option.price != null) assert.ok(textContent.includes(priceFormat.format(option.price).replace(/\s+/g, ' ')), 'Existing price remains available');
+}
+for (const group of menu) {
+  assert.ok(disclosure.includes(`id="${group.id}"`));
+  for (const category of group.categories) {
+    for (const copy of [category.name, category.description, category.note].filter(Boolean)) assert.ok(textContent.includes(copy));
+    for (const item of category.items) {
+      checkMenuOption(item);
+      if (item.description) assert.ok(textContent.includes(item.description));
+      for (const option of [...(item.variants ?? []), ...(item.supplements ?? [])]) checkMenuOption(option);
+    }
+    for (const option of category.supplements ?? []) checkMenuOption(option);
+  }
+}
 
 const homepage = htmlByPath.get('/');
 assert.match(homepage, /<a\b[^>]*href="#favorieten"[^>]*>Ontdek onze favorieten<\/a>/);
