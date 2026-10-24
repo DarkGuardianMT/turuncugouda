@@ -15,10 +15,11 @@ export const site = {
   location: 'Winkelcentrum Bloemendaal',
   phone: '+31 6 36044912',
   phoneHref: 'tel:+31636044912',
+  whatsappHref: 'https://wa.me/31636044912',
   instagram: { handle: '@turuncugouda.nl', href: 'https://www.instagram.com/turuncugouda.nl/' },
   tiktok: { handle: '@turuncugouda', href: 'https://www.tiktok.com/@turuncugouda' },
   directionsHref: 'https://www.google.com/maps/dir/?api=1&destination=Lekkenburg%2067%2C%202804%20XB%20Gouda',
-  reservationMessage: 'Stuur je reserveringsaanvraag via het formulier. Je reservering is pas definitief nadat Turuncu deze heeft bevestigd. Liever direct contact? Bel ons of stuur een bericht via Instagram.',
+  reservationMessage: 'Stuur je reserveringsaanvraag via het formulier. Je reservering is pas definitief nadat Turuncu deze heeft bevestigd.',
 } as const;
 
 export const openingHours = [

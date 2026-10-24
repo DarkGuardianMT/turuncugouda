@@ -76,7 +76,7 @@ const desiredTimes = Array.from({ length: 13 }, (_, index) => {
             <button class="button button-primary" type="submit" data-submit>Verstuur aanvraag</button>
           </fieldset>
         </form>
-        <noscript><p class="reservation-note">Het formulier heeft JavaScript nodig. Je kunt ons ook bellen of via Instagram een bericht sturen; de contactmogelijkheden staan hieronder.</p></noscript>
+        <noscript><p class="reservation-note">Het formulier heeft JavaScript nodig. Stuur ons een <a href={site.whatsappHref}>WhatsApp-bericht</a> als je het formulier niet kunt gebruiken. Ons telefoonnummer is {site.phone}. Je reservering is pas definitief na bevestiging door Turuncu.</p></noscript>
         <section class="reservation-success" data-reservation-success role="status" aria-labelledby="reservation-success-title" tabindex="-1" hidden>
           <h2 id="reservation-success-title">Reserveringsaanvraag ontvangen</h2>
           <p>Bedankt! We hebben je aanvraag ontvangen. Je reservering is pas definitief nadat Turuncu deze heeft bevestigd.</p>
@@ -93,14 +93,12 @@ const desiredTimes = Array.from({ length: 13 }, (_, index) => {
         <p>We zijn open van dinsdag t/m zaterdag, van 10:00 tot 16:30. Je gekozen datum en tijd zijn een verzoek. Wacht de bevestiging van Turuncu af voordat je uitgaat van een gereserveerde tafel.</p>
       </aside>
       <section class="reservation-alternatives" aria-labelledby="reservation-contact-title">
-        <h2 id="reservation-contact-title">Liever direct contact?</h2>
-        <p>Bel ons of stuur een bericht via Instagram.</p>
+        <h2 id="reservation-contact-title">Vragen over je reservering?</h2>
+        <p>Stuur ons een WhatsApp-bericht.</p>
         <div class="button-group">
-          <a class="button button-secondary" href={site.phoneHref}>Bel ons</a>
-          <a class="button button-secondary" href={site.instagram.href}>Instagram</a>
-          <a class="button button-secondary" href="/#contact">Contact</a>
+          <a class="button button-secondary" href={site.whatsappHref}>WhatsApp</a>
         </div>
-        <p class="reservation-details">{site.phone}<br />Instagram: {site.instagram.handle}</p>
+        <a class="reservation-details reservation-phone" href={site.phoneHref}>{site.phone}</a>
       </section>
     </div>
   </main>
@@ -141,6 +139,7 @@ const desiredTimes = Array.from({ length: 13 }, (_, index) => {
   .reservation-note, .reservation-alternatives { margin-top: var(--space-5); padding-top: var(--space-4); border-top: 1px solid var(--color-border); }
   .reservation-note h2, .reservation-alternatives h2, .reservation-success h2 { font-size: clamp(1.5rem, 4vw, 2rem); margin-bottom: var(--space-2); }
   .reservation-details { margin-top: var(--space-3); }
+  .reservation-phone { display: inline-flex; align-items: center; min-height: 44px; overflow-wrap: anywhere; }
   .reservation-alternatives .button-group { margin-top: var(--space-2); }
   .reservation-success { padding: var(--space-3); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-small); }
   .reservation-success h2 { overflow-wrap: anywhere; }

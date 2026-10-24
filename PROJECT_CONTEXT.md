@@ -101,6 +101,8 @@ Owner-provided current details are used in Contact and the footer:
 
 - Turuncu Café en Bakkerij, Lekkenburg 67, 2804 XB Gouda, Winkelcentrum Bloemendaal
 - Phone: `+31 6 36044912` with `tel:+31636044912`
+- Preferred direct contact: WhatsApp, centralized as `site.whatsappHref`
+  (`https://wa.me/31636044912`); phone remains visible as secondary information.
 - Instagram: `@turuncugouda.nl`; TikTok: `@turuncugouda`
 - Monday and Sunday closed; Tuesday through Saturday `10:00–16:30`.
   Conflicting old-site references to 09:30 or around 17:00 must not be used.
@@ -247,8 +249,9 @@ message remain optional. No restaurant capacity, special High Tea rule, or respo
 time is invented; High Tea conditions remain separate and need owner confirmation.
 
 The header Reserveer CTA and homepage primary reservation action now link to
-`/reserveren`; ordinary Contact links retain their destination. Verified phone,
-Instagram, and Contact alternatives remain usable without JavaScript. Before
+`/reserveren`; ordinary Contact links retain their destination. WhatsApp is the
+preferred channel for questions and the no-JavaScript fallback, with the verified
+phone number secondary. Instagram/TikTok are social links only. Before
 enhancement the fieldset is disabled, preventing accidental non-JSON submissions.
 A concise data-use note is shown beside Submit, without inventing a full privacy policy.
 
@@ -522,6 +525,32 @@ production build and extended `npm run test:seo` pass. The generated PNGs and al
 ICO frames preserve transparency around the artwork. The visible bounding boxes
 are 14×14px on the 16px canvas and 28×28px on the 32px canvas: 87.5% of each axis
 and 76.6% of canvas area. Coverage checks reject the previous tiny-logo output.
+
+## Approved contact redesign (24 October 2026)
+
+The owner approved the Contact/WhatsApp redesign and authorized committing and
+pushing it to main after final checks. Hostinger deployment configuration is unchanged.
+
+- `ContactVisit` preserves `#contact` and displays cream panels for Contact,
+  Openingstijden and Bezoek ons: stacked on mobile, two columns with a full-width
+  location row from 768px, and three columns from 1024px. Styling is scoped, with
+  subtle borders/radii and no shadows or new client JavaScript.
+- The primary general-contact CTA uses `site.whatsappHref`, without a prefilled
+  message. The phone remains a smaller secondary `tel:` link. Address, directions,
+  hours and social handles are unchanged. Instagram/TikTok sit under `Volg ons`.
+- A separate reservation area links to `/reserveren` and retains confirmation
+  guidance. That page's secondary questions section and noscript fallback now
+  prefer WhatsApp; form markup, initialization script and all backend behavior
+  are unchanged. No Instagram messaging or prominent calling CTA remains.
+- Automated checks cover centralized WhatsApp data, contact/booking/social
+  separation, verified visit information, noscript wording and the existing form
+  contract. The full suite contains 136 tests.
+- Local visual review passed for Contact at 390/768/1440/1920px and `/reserveren`
+  at 390/768/1440px, without overflow or a layout regression. The reservation
+  console was clear after reload. The owner separately confirmed a clean homepage
+  console and visible, logical keyboard focus on both pages before approval.
+- Review screenshots stay ignored under `.tmp/ui-review/contact-*.png` and
+  `reservation-contact-*.png`; they are not publication assets.
 
 ## Approved printed-menu redesign (24 October 2026)
 

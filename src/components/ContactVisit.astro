@@ -1,0 +1,88 @@
+---
+import Section from './Section.astro';
+import { site, openingHours } from '../data/site';
+---
+
+<Section id="contact" title="Bezoek Turuncu" eyebrow="In Winkelcentrum Bloemendaal">
+  <div class="visit-panels">
+    <section class="visit-panel visit-contact" aria-labelledby="visit-contact-title">
+      <h3 id="visit-contact-title">Contact</h3>
+      <p>We zijn het makkelijkst bereikbaar via WhatsApp.</p>
+      <a class="button button-primary whatsapp-action" href={site.whatsappHref}>Stuur ons een WhatsApp-bericht</a>
+      <a class="visit-phone" href={site.phoneHref}>{site.phone}</a>
+    </section>
+    <section class="visit-panel visit-hours" aria-labelledby="visit-hours-title">
+      <h3 id="visit-hours-title">Openingstijden</h3>
+      <dl class="visit-hours-list">
+        {openingHours.map(({ days, hours }) => (
+          <div class:list={{ 'is-closed': hours === 'Gesloten' }}><dt>{days}</dt><dd>{hours}</dd></div>
+        ))}
+      </dl>
+    </section>
+    <section class="visit-panel visit-location" aria-labelledby="visit-location-title">
+      <div>
+        <h3 id="visit-location-title">Bezoek ons</h3>
+        <address>
+          <strong>{site.name}</strong><br />
+          {site.address}<br />{site.postalAddress}<br />
+          <span>{site.location}</span>
+        </address>
+      </div>
+      <a class="text-link visit-route" href={site.directionsHref}>Route bekijken <span aria-hidden="true">↗</span></a>
+    </section>
+  </div>
+  <div class="visit-followup">
+    <section class="visit-reservation" aria-labelledby="visit-reservation-title">
+      <div>
+        <h3 id="visit-reservation-title">Reserveren</h3>
+        <p>{site.reservationMessage}</p>
+      </div>
+      <a class="button button-primary" href="/reserveren">Reservering aanvragen</a>
+    </section>
+    <section class="visit-social" aria-labelledby="visit-social-title">
+      <h3 id="visit-social-title">Volg ons</h3>
+      <ul>
+        <li><a href={site.instagram.href}>Instagram <span>{site.instagram.handle}</span></a></li>
+        <li><a href={site.tiktok.href}>TikTok <span>{site.tiktok.handle}</span></a></li>
+      </ul>
+    </section>
+  </div>
+</Section>
+
+<style>
+  .visit-panels { display: grid; gap: var(--space-2); }
+  .visit-panel { min-width: 0; padding: var(--space-3); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-small); }
+  h3 { margin-bottom: var(--space-2); font-family: var(--font-display); font-size: 1.5rem; font-weight: 400; letter-spacing: -0.02em; }
+  .visit-contact p { max-width: 26rem; }
+  .whatsapp-action { margin-top: var(--space-3); padding-inline: var(--space-2); font-size: var(--text-small); }
+  .visit-phone { display: flex; align-items: center; width: fit-content; min-height: 44px; margin-top: var(--space-1); color: var(--color-muted); font-size: var(--text-small); overflow-wrap: anywhere; }
+  .visit-hours-list { margin: 0; }
+  .visit-hours-list > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0 var(--space-2); padding-block: var(--space-2); border-bottom: 1px solid var(--color-border); }
+  .visit-hours-list > div:first-child { padding-top: 0; }
+  .visit-hours-list > div:last-child { padding-bottom: 0; border-bottom: 0; }
+  .visit-hours-list dd { margin: 0; font-weight: 600; white-space: nowrap; }
+  .is-closed { color: var(--color-muted); }
+  .visit-location address { font-style: normal; }
+  .visit-location address strong { font-weight: 600; }
+  .visit-location address span { color: var(--color-muted); font-size: var(--text-small); }
+  .visit-route { margin-top: var(--space-2); }
+  .visit-followup { display: grid; gap: var(--space-4); margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--color-border); }
+  .visit-reservation p { max-width: 38rem; color: var(--color-muted); }
+  .visit-reservation .button { margin-top: var(--space-3); }
+  .visit-social ul { margin: 0; padding: 0; list-style: none; }
+  .visit-social a { display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--space-1); min-height: 44px; width: fit-content; font-size: var(--text-small); }
+  .visit-social a span { color: var(--color-muted); }
+  @media (min-width: 48rem) {
+    .visit-panels { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .visit-location { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); }
+    .visit-route { margin: 0; flex-shrink: 0; }
+    .visit-followup { grid-template-columns: 2fr 1fr; }
+  }
+  @media (min-width: 64rem) {
+    .visit-panels { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
+    .visit-location { grid-column: auto; display: block; }
+    .visit-route { margin-top: var(--space-2); }
+    .visit-followup { grid-template-columns: 2fr 1fr; gap: var(--space-3); }
+    .visit-social { padding-left: var(--space-3); }
+  }
+</style>

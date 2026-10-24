@@ -11,6 +11,7 @@ import { hashPassword } from '../src/server/admin/password.mjs';
 import sharp from 'sharp';
 import { tickerProducts } from '../src/data/productTicker.ts';
 import { menu } from '../src/data/menu.ts';
+import { site, openingHours } from '../src/data/site.ts';
 
 const root = 'dist/client';
 const origin = new URL(config.site).origin;
@@ -216,6 +217,44 @@ for (const group of menu) {
 }
 
 const homepage = htmlByPath.get('/');
+const contact = homepage.slice(homepage.indexOf('<section id="contact"'), homepage.indexOf('</main>'));
+const labelledSection = (html, id) => html.match(new RegExp(`<section\\b[^>]*aria-labelledby="${id}"[^>]*>([\\s\\S]*?)<\\/section>`))?.[1];
+const directContact = labelledSection(contact, 'visit-contact-title');
+const booking = labelledSection(contact, 'visit-reservation-title');
+const social = labelledSection(contact, 'visit-social-title');
+assert.ok(directContact && booking && social, 'Direct contact, booking and social links have separate named sections');
+assert.match(directContact, /class="button button-primary whatsapp-action"/);
+assert.ok(directContact.includes(`href="${site.whatsappHref}"`) && directContact.includes(site.phone));
+assert.ok(!/Instagram|TikTok|Bel ons/i.test(directContact));
+assert.ok(booking.includes('href="/reserveren"') && booking.includes(site.reservationMessage));
+assert.ok(!/wa\.me|Instagram|TikTok|Bel ons/i.test(booking), 'Form remains the primary booking action');
+assert.ok(social.includes('Volg ons') && social.includes(site.instagram.href) && social.includes(site.tiktok.href));
+assert.ok(social.includes(site.instagram.handle) && social.includes(site.tiktok.handle));
+assert.ok(contact.indexOf(social) > contact.indexOf(directContact), 'Social links follow direct contact');
+assert.doesNotMatch(contact, /Bel ons|via Instagram|stuur[^<]*DM/i);
+const location = labelledSection(contact, 'visit-location-title');
+for (const text of [site.name, site.address, site.postalAddress, site.location]) assert.ok(location.includes(text));
+assert.match(location, /<address\b/);
+assert.ok(decode(location).includes(`href="${site.directionsHref}"`));
+const hours = labelledSection(contact, 'visit-hours-title');
+for (const { days, hours: time } of openingHours) assert.ok(hours.includes(days) && hours.includes(time));
+
+const reservationPage = htmlByPath.get('/reserveren');
+const reservationContact = labelledSection(reservationPage, 'reservation-contact-title');
+assert.ok(reservationContact.includes('Vragen over je reservering?') && reservationContact.includes(`href="${site.whatsappHref}"`));
+assert.ok(reservationContact.includes(site.phone) && reservationContact.includes(`href="${site.phoneHref}"`));
+assert.doesNotMatch(reservationContact, /Instagram|Bel ons|bellen/i);
+const noScript = reservationPage.match(/<noscript>([\s\S]*?)<\/noscript>/)[1];
+assert.ok(noScript.includes(`href="${site.whatsappHref}"`) && noScript.includes(site.phone));
+assert.doesNotMatch(noScript, /Instagram|bellen/i);
+const reservationForm = reservationPage.match(/<form\b([^>]*)>([\s\S]*?)<\/form>/);
+assert.equal(attributes(reservationForm[1]).action, '/api/reservations');
+assert.equal(attributes(reservationForm[1]).method, 'post');
+const formFields = [...reservationForm[2].matchAll(/<(?:input|select|textarea)\b[^>]*>/g)].map(match => attributes(match[0]).name);
+assert.deepEqual(formFields, ['reservationDate', 'reservationTime', 'guestCount', 'name', 'phone', 'email', 'message', 'contact_url']);
+assert.match(reservationForm[2], /<fieldset\b[^>]*data-form-fields[^>]*disabled/);
+assert.match(reservationForm[2], /data-submit/);
+console.log('PASS: centralized WhatsApp links, secondary phone, separate social/booking sections, verified visit data, noscript contact and existing reservation form contract.');
 assert.match(homepage, /<a\b[^>]*href="#favorieten"[^>]*>Ontdek onze favorieten<\/a>/);
 assert.ok(homepage.includes('Café • Bakkerij • Lunch'));
 assert.ok(homepage.match(/<header\b[\s\S]*?<\/header>/)[0].includes('Turuncu maakt u blij'));
