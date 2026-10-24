@@ -7,6 +7,8 @@ import { access } from 'node:fs/promises';
 import { createConnection } from 'mysql2/promise';
 import { readDatabaseConfig } from '../src/server/db/config.mjs';
 import { hashPassword } from '../src/server/admin/password.mjs';
+import { createSession, readAdminConfig } from '../src/server/admin/auth.ts';
+import { hashRateLimitSubject } from '../src/server/rateLimit/core.ts';
 
 // Uitsluitend voor een lokale testdatabase; tijdelijke records worden exact op ID en testmarkering verwijderd.
 if (process.env.ADMIN_INTEGRATION_LOCAL !== '1') throw new Error('Set ADMIN_INTEGRATION_LOCAL=1 explicitly for local database verification.');
@@ -15,7 +17,8 @@ if (!['localhost', '127.0.0.1', '::1'].includes(dbConfig.host)) throw new Error(
 const db = await createConnection(dbConfig);
 const marker = `admin-test-${randomBytes(12).toString('hex')}`;
 const password = randomBytes(32).toString('base64url');
-const adminEnvironment = { ADMIN_USERNAME: marker, ADMIN_PASSWORD_HASH: await hashPassword(password), ADMIN_SESSION_SECRET: randomBytes(32).toString('base64url') };
+const adminEnvironment = { ADMIN_USERNAME: marker, ADMIN_PASSWORD_HASH: await hashPassword(password), ADMIN_SESSION_SECRET: randomBytes(32).toString('base64url'),
+  RATE_LIMIT_SECRET: randomBytes(32).toString('base64url'), SMTP_HOST: '', SMTP_PASSWORD: '' };
 const ids = [];
 let server;
 let base;
@@ -85,7 +88,9 @@ try {
   assert.ok(!(await missingConfig.text()).includes('ADMIN_'));
   await stop();
   await start({ ...adminEnvironment, DB_PORT: '1' });
-  const brokenDbCookie = await login();
+  const unavailableLogin = await post('/admin/auth/login', { username: marker, password });
+  assert.equal(unavailableLogin.status, 503); assert.equal(unavailableLogin.headers.get('set-cookie'), null);
+  const brokenDbCookie = `turuncu_admin=${createSession(readAdminConfig(adminEnvironment))}`;
   const brokenList = await get('/admin/reservations', brokenDbCookie);
   assert.equal(brokenList.status, 503); privateHeaders(brokenList);
   const brokenHtml = await brokenList.text();
@@ -192,6 +197,8 @@ try {
 } finally {
   await stop();
   try {
+    for (const address of ['127.0.0.1', '::1']) await db.execute('DELETE FROM rate_limits WHERE subject_hash = ? AND scope IN (?, ?)',
+      [hashRateLimitSubject(address, adminEnvironment.RATE_LIMIT_SECRET), 'admin_login', 'reservation']);
     for (const id of ids) await db.execute('DELETE FROM reservations WHERE id = ? AND name = ?', [id, marker]);
     const [remaining] = await db.query('SELECT COUNT(*) AS count FROM reservations');
     if (before !== undefined) assert.equal(Number(remaining[0].count), before, 'Final reservation count must match starting count');

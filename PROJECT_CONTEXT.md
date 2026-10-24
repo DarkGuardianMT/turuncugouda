@@ -270,9 +270,10 @@ local checks use localhost. Configure the canonical allowed host and verify URL
 scheme reconstruction after TLS termination when hosting is known. Until then,
 Origin mismatches fail closed; no arbitrary forwarded-header trust is introduced.
 
-Production rate limiting remains required before public launch; the public API has
-no in-memory/distributed limiter or CAPTCHA. The separate admin workflow below has
-a local login safeguard. Internal SMTP notifications are now implemented below;
+Durable MySQL reservation/admin limiting is approved for production (see below).
+The owner reports migration 003/history and RATE_LIMIT_SECRET are ready on Hostinger;
+the implementation push follows final verification. Runtime table grants remain
+required. CAPTCHA is not included. Internal SMTP notifications are now implemented below;
 guest email, capacity management, and chatbot implementation remain deferred. Privacy, retention,
 deletion, and any further spam protection remain production decisions.
 
@@ -295,9 +296,9 @@ deletion, and any further spam protection remain production decisions.
 - Every protected request validates the session. Admin POSTs require exact Origin
   checking shared with the public API (which retains its Origin-less client support).
   Authenticated mutations additionally require a signed, session-bound CSRF token.
-  Login has a bounded in-memory five-attempt/15-minute safeguard per adapter client
-  address. It resets on restart, is not shared across instances, and is not
-  production-grade rate limiting.
+  Login now uses the shared durable MySQL five-attempt/15-minute limiter per
+  runtime client address described below; successful authentication resets its
+  subject before session issuance. The old process-memory implementation is removed.
 - The focused admin service reuses the existing pool and parameterized queries.
   Cards list today/future dates using Europe/Amsterdam, ordered by visit date/time
   then creation time. Creation timestamps are converted from SQL epoch values and
@@ -527,6 +528,78 @@ production build and extended `npm run test:seo` pass. The generated PNGs and al
 ICO frames preserve transparency around the artwork. The visible bounding boxes
 are 14×14px on the 16px canvas and 28×28px on the 32px canvas: 87.5% of each axis
 and 76.6% of canvas area. Coverage checks reject the previous tiny-logo output.
+
+## Approved durable rate limiting (24 October 2026)
+
+The owner approved committing/pushing the implementation after final verification.
+Phase one committed migration 003 in `74b1cc5d674546f5e041f5660c980e2cfdd04449`.
+The owner reports the production table and migration-history filename/checksum
+are correct and RATE_LIMIT_SECRET is configured on Hostinger. The implementation
+does not read/change that hosting secret or execute production SQL. Migrations
+001/002/003 remain unchanged. Existing UI, SEO configuration, reservations business
+rules, SMTP, authentication/session and status workflow stay unchanged.
+
+- New `003_create_rate_limits.sql` adds only an InnoDB limiter table with the
+  composite scope/subject-hash primary key, unsigned count, millisecond window/update
+  timestamps and an indexed cleanup timestamp. Migrations 001/002 are unchanged.
+  The existing migration runner hashes UTF-8 SQL with CRLF normalized to LF:
+  `b2871dfde78b171898242d796112ec03c3f2dca73eefaa89260eff6576446d3a`.
+- `src/server/rateLimit/core.ts` holds the reusable limiter; `service.ts` guards
+  runtime configuration/database access with `astro:env/server`. `admin_login`
+  and `reservation` each allow five attempts per address in a fixed 15-minute
+  window. The new `RATE_LIMIT_SECRET` is validated lazily like the session secret
+  (43–128 base64url characters, at least 32 decoded bytes), without a default.
+  All instances must share the database and secret; rotation changes the keys.
+- Only Astro's runtime clientAddress is accepted. Conservative Node IP/URL
+  normalization canonicalizes IPv6 and maps IPv4-mapped IPv6 to IPv4. Invalid or
+  unavailable addresses fail closed; no IP headers are parsed as a fallback.
+  SQL stores only hexadecimal HMAC-SHA-256(normalized address, secret), never
+  raw IPs, credentials or request data. No digest is logged.
+- A transaction inserts/locks the unique row, SELECTs FOR UPDATE, decides using
+  the database UTC clock, then increments or resets the count and commits before
+  authorizing work. Blocked attempts do not extend windows. This is shared across
+  Node processes, restarts and apex/www; no in-memory lock or quota cache is used.
+- Reservation ordering: Origin/content-type checks → durable consumption →
+  bounded body parsing → honeypot → unchanged validation → INSERT → unchanged
+  SMTP → HTTP 201. Malformed JSON, oversized bodies, honeypots and validation
+  failures count; rejected protocols/origins are rejected cheaply first.
+  Exhaustion returns Dutch `RATE_LIMITED` HTTP 429 and integer Retry-After seconds.
+- Admin consumes before credential verification after existing form guards,
+  retains invalid/limited redirects and resets only its login subject on success.
+  Reset/storage/config/address errors return generic 503 without issuing a cookie;
+  reservation limiter failures return generic `SERVICE_UNAVAILABLE` 503 without
+  an insert/mail attempt. Logs use fixed RATE_LIMIT_UNAVAILABLE only. There is
+  no fallback that silently disables limiting on database failure.
+- After committed decisions, cleanup runs at most once/minute/process, deleting
+  at most 100 rows older than one hour using the timestamp index. Only the cleanup
+  timer is local. No cron/history/background worker; idle rows await traffic and
+  backlogs drain in bounded batches. Cleanup errors preserve the committed quota
+  decision and log fixed RATE_LIMIT_CLEANUP_FAILED without driver details.
+- Tests cover policy boundaries, HMAC/privacy, normalization, lazy config,
+  rollback/release, safe failures, reset, cleanup and both actual route handlers.
+  Existing notification tests isolate the limiter so their SMTP guarantees remain
+  independent. The database-free SEO/HTTP harness now expects closed 503 behavior
+  without DB and uses signed test sessions to retain CSRF/proxy regression checks;
+  public metadata/domain configuration is unchanged.
+- `test:rate-limit-integration` is explicitly opt-in and loopback-only. It uses
+  the existing migration mechanism, concurrent pools, multiple built Node servers,
+  restarts and apex/www requests, disabling real mail and deleting exact synthetic
+  hashes/reservation IDs. Existing admin/retention scripts use isolated ephemeral
+  limiter secrets. `.env` is never edited. See DEVELOPMENT for full rollout order.
+- Before deployment: back up/inspect production history, apply migration 003,
+  grant the runtime account SELECT/INSERT/UPDATE/DELETE only on rate_limits,
+  configure one new server-only RATE_LIMIT_SECRET on all instances, and verify
+  trusted proxy/client-address handling. Astro's adapter can use forwarding
+  headers for approved hosts: Hostinger must overwrite untrusted headers and
+  keep direct Node access private. No proxy parser/config change is included.
+- Verification: 168 unit/route tests pass, Astro checks have zero diagnostics,
+  build and SEO/HTTP checks pass. A disposable loopback MariaDB 10.4.32 instance
+  verified migration application/repeat skip, 30 concurrent attempts (exactly five
+  allowed), independent pools/processes, restart persistence, apex/www quotas,
+  UTC expiry/reset, 100-row cleanup bounds and real reservation/admin HTTP flows.
+  Existing admin and retention integrations pass with separate restricted test
+  runtime/maintenance accounts. Exact synthetic rows and the temporary database
+  files were removed; the existing local database, production and `.env` are unchanged.
 
 ## Approved High Tea highlight (24 October 2026)
 

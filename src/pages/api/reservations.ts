@@ -4,6 +4,7 @@ import { sendReservationNotification } from '../../server/reservations/notificat
 import { validateReservation } from '../../server/reservations/validation';
 import { DatabaseConfigurationError } from '../../server/db/config.mjs';
 import { isAllowedReservationOrigin, preparePublicReservationInput } from '../../server/reservations/requestGuards';
+import { consumeRateLimit } from '../../server/rateLimit/service';
 
 export const prerender = false;
 const maximumBodyBytes = 16 * 1024;
@@ -18,12 +19,24 @@ function error(status: number, code: string, message: string): Response {
   return json({ success: false, error: { code, message } }, status);
 }
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async (context) => {
+  const { request } = context;
   if (!isAllowedReservationOrigin(request)) {
     return error(403, 'INVALID_ORIGIN', 'De aanvraag kon niet worden verwerkt. Gebruik het formulier op onze website.');
   }
   if (request.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase() !== 'application/json') {
     return error(415, 'UNSUPPORTED_MEDIA_TYPE', 'Verstuur de gegevens als application/json.');
+  }
+
+  // Na goedkope protocolcontroles, vóór lezen/parsen: ook ongeldige JSON, honeypot en validatiefouten tellen mee.
+  try {
+    const limit = await consumeRateLimit({ scope: 'reservation', subject: context.clientAddress });
+    if (!limit.allowed) return json({ success: false, error: {
+      code: 'RATE_LIMITED', message: 'Te veel aanvragen. Probeer het later opnieuw.',
+    } }, 429, { 'Retry-After': String(limit.retryAfterSeconds) });
+  } catch {
+    console.error('Reservation rate limit failed:', 'RATE_LIMIT_UNAVAILABLE');
+    return error(503, 'SERVICE_UNAVAILABLE', 'Reserveren is tijdelijk niet mogelijk. Probeer het later opnieuw.');
   }
 
   let input: unknown;

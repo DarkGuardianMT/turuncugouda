@@ -9,6 +9,7 @@ import { todayInAmsterdam } from '../src/lib/reservationDate.ts';
 const poolId = '\0reservation-notification-test-pool';
 const envId = '\0reservation-notification-test-env';
 const mailerId = '\0reservation-notification-test-mailer';
+const limiterId = '\0reservation-notification-test-limiter';
 const server = await createServer({
   configFile: false, envDir: false,
   optimizeDeps: { noDiscovery: true, include: [] },
@@ -20,8 +21,10 @@ const server = await createServer({
       if (source === '../db/pool') return poolId;
       if (source === 'astro:env/server') return envId;
       if (source === 'nodemailer') return mailerId;
+      if (source === '../../server/rateLimit/service') return limiterId;
     },
     load(id) {
+      if (id === limiterId) return `export async function consumeRateLimit() { return { allowed: true }; }`;
       if (id === poolId) return `
         export const pool = { async execute() { throw new Error('Database stub not configured'); } };
         export function getDatabasePool() { return pool; }

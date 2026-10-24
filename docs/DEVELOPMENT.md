@@ -15,7 +15,9 @@ Hostinger behind an HTTPS reverse proxy; the acceptance checklist remains releva
 3. Copy `.env.example` to `.env` and fill in your own local `DB_HOST`, `DB_PORT`,
    `DB_NAME`, `DB_USER`, and `DB_PASSWORD`. `DB_CONNECTION_LIMIT` defaults to 5
    (technical range 1–100). Quote values containing `#` or spaces as needed.
-4. Run `npm run db:migrate`.
+4. Run `npm run db:migrate`. Set server-only `RATE_LIMIT_SECRET` as described
+   under [durable rate limiting](#durable-rate-limiting) and grant the runtime
+   account access to `rate_limits` before testing POSTs/login.
 5. Run `npm run dev` and use `http://localhost:4321`.
 
 Astro loads local environment files during development. The migration command
@@ -27,8 +29,9 @@ built-server test with your `.env`, run
 `node --env-file=.env ./dist/server/entry.mjs` after building. `HOST` and `PORT`
 can configure the standalone listener.
 
-No connection or required DB configuration is evaluated until a reservation is
-stored or migrations are run. `npm run check`, `npm test`, and `npm run build`
+No connection or required DB configuration is evaluated until a rate-limited
+reservation/login POST, another database operation or migrations run. Static pages,
+`npm run check`, `npm test`, and `npm run build`
 work without database credentials. Local environment files remain ignored by Git;
 never prefix database credentials with `PUBLIC_` or put them in client scripts.
 The pool imports `astro:env/server`, which Astro rejects in a client dependency
@@ -50,7 +53,8 @@ differences are ignored for checksums. The runner only operates within `DB_NAME`
 does not create/drop databases, and never resets data. Migration credentials need
 CREATE/ALTER/INDEX and migration-history SELECT/INSERT privileges; the application
 account needs INSERT and SELECT on `reservations`, plus UPDATE on its `status`
-column for admin actions. Separate migration credentials can be exported for the
+column for admin actions and SELECT/INSERT/UPDATE/DELETE on `rate_limits`.
+Separate migration credentials can be exported for the
 command, overriding `.env`.
 
 MySQL/MariaDB DDL implicitly commits. If execution stops after a table is created
@@ -101,7 +105,9 @@ see [notification setup](#reservation-notification-email).
 Validation returns 400 with `error.code: "VALIDATION_ERROR"` and `error.fields`;
 malformed JSON returns 400, unsupported content types 415, bodies above the 16 KiB
 technical limit 413, and other HTTP methods 405 with `Allow: POST`. Database/server
-failures return only a generic Dutch 500 message. Responses use `Cache-Control:
+reservation-insert failures return only a generic Dutch 500 message. Limiter failures
+return generic 503; quota exhaustion returns 429 with `Retry-After` (see below).
+Responses use `Cache-Control:
 no-store`; logs contain only configuration field names or safe error codes,
 never SQL or complete reservation payloads. No permissive CORS headers are added.
 
@@ -149,14 +155,171 @@ Hostinger must overwrite client-supplied forwarding headers, provide
 nondefault ports and comma-separated header chains even if Astro would ignore them.
 Missing external scheme/host information fails closed; it is not guessed from Origin.
 Keep the Node origin inaccessible outside the trusted proxy and verify live HTTPS
-login, requests and trusted client IPs after deployment. No CORS permission or spam
-protection is introduced. See Astro's
+login, requests and trusted client IPs after deployment. No CORS permission or
+custom proxy-header parsing is introduced. See Astro's
 [proxy/security configuration](https://docs.astro.build/en/reference/configuration-reference/#securityalloweddomains).
 
-Real production rate limiting remains required before public launch. The public
-endpoint has no in-memory/distributed limiter or CAPTCHA. Assess additional spam
-protection if needed and define privacy/retention/deletion policy. Guest email, chatbot,
-capacity management, and deployment remain later checkpoints.
+Durable MySQL limiting is implemented below and approved for production after
+final verification. CAPTCHA is not included. Assess additional spam
+protection if needed and define privacy/retention/deletion policy. Guest email,
+chatbot and capacity management remain deferred.
+
+## Durable rate limiting
+
+Both `admin_login` and `reservation` allow **five attempts per client address in
+a fixed 15-minute window**, independently. State is shared through the existing
+MySQL/MariaDB pool, including apex/www instances and process restarts. There is
+no memory fallback or external service. Existing successful reservation creation
+and its subsequent best-effort SMTP notification are unchanged.
+
+### Configuration and privacy
+
+Add **`RATE_LIMIT_SECRET`** to the server environment. Generate a private random
+base64url value from at least 32 random bytes, independently of the admin session
+secret, for example with
+`node -p "require('node:crypto').randomBytes(32).toString('base64url')"`.
+Do not put its output in documentation, Git, browser scripts or public env vars.
+Use the same secret on every instance sharing the database. Rotation changes
+subject hashes and effectively resets current quotas; coordinate rotation across
+instances. `.env.example` contains only an intentionally unusable placeholder.
+
+Validation is lazy, at consume/reset: 43–128 base64url characters decoding to at
+least 32 bytes. Missing/invalid configuration fails closed with generic 503 on
+the protected POST; it does not prevent public static rendering/builds. No
+secret value or configuration/driver exception is returned or logged.
+
+Only Astro's runtime `context.clientAddress` is used. The application never reads
+`X-Forwarded-For`, `Forwarded` or another IP header for a fallback. IPv4 is
+validated; IPv6 is canonicalized with Node's IP/URL APIs; IPv4-mapped IPv6 is
+normalized to IPv4. Unavailable/invalid addresses (including getter errors, header
+chains, ports and zone identifiers) fail closed. There is no shared anonymous key.
+**Astro's adapter may itself use forwarding headers for a trusted host.** Hostinger
+must overwrite untrusted forwarding headers and prevent direct public access to
+the Node origin; verify actual runtime client addresses before rollout. No proxy
+or Hostinger configuration is changed here.
+
+The stored subject is hexadecimal `HMAC-SHA-256(secret, normalizedAddress)` using
+Node crypto; raw IPs never reach SQL. Scope/hash, current window/count and update
+time are the only stored state. Hashes are pseudonymous limiter identifiers,
+not anonymous statistics. Logs contain only fixed generic codes, never addresses,
+hashes, bodies, credentials, SQL or provider errors.
+
+### Storage, concurrency and request order
+
+`003_create_rate_limits.sql` creates one InnoDB `rate_limits` table:
+`scope VARCHAR(32)` + `subject_hash CHAR(64)` use ASCII binary collation and form
+the primary key; `attempt_count` is unsigned INT; `window_started_at` and
+`updated_at` are DATETIME(3), written using the database's **UTC clock**. An index
+on `updated_at` supports cleanup. Migrations 001/002 remain unchanged.
+
+Each consumption acquires one pool connection and starts a transaction. A
+parameterized INSERT with a no-op duplicate-key update creates/locks the unique
+row, followed by SELECT FOR UPDATE. Under that lock, expiry resets count to one;
+otherwise an allowed attempt increments count. The sixth request is blocked
+without extending the window or increasing the capped count. Commit precedes
+the returned decision. No application lock coordinates requests. SQL failures
+roll back and release the connection; a failed/uncertain commit never authorizes
+work. `retryAfterSeconds` rounds the remaining database-clock window up to a
+positive integer. Configurable windows are bounded to 15 minutes so cleanup can
+never remove an active supported window.
+
+Reservation ordering is: Origin → JSON content-type → durable consumption →
+bounded 16 KiB body read/UTF-8/JSON parsing → honeypot → unchanged business
+validation → reservation INSERT → unchanged SMTP attempt → existing HTTP 201.
+Consequently malformed/oversized JSON, honeypots and invalid business fields
+consume quota. Rejected Origins, incompatible media types and non-POST methods
+are rejected cheaply without storage work. Exhaustion returns HTTP 429:
+
+```json
+{"success":false,"error":{"code":"RATE_LIMITED","message":"Te veel aanvragen. Probeer het later opnieuw."}}
+```
+
+`Retry-After` contains seconds; responses remain `no-store`. No hash, count or
+internal database metadata is exposed. The existing form's generic-error path
+handles this without changing its UX.
+
+Admin login keeps existing same-origin/bounded form parsing first. Each eligible
+login attempt consumes `admin_login` before expensive credential verification.
+Failures retain the existing invalid-login redirect. Exhaustion redirects to
+`/admin/login?notice=limited`. Successful authentication deletes only that
+scope/subject before issuing the unchanged signed session cookie. Reset failure
+returns 503 without a cookie. Existing session, CSRF, logout and status logic
+are unchanged; the old memory limiter has been removed.
+
+### Failure and cleanup policy
+
+Limiter read/write/config/address failures **fail closed**: reservation POSTs
+return HTTP 503 `SERVICE_UNAVAILABLE` with a generic Dutch message, admin login
+returns its existing generic 503, and no reservation, notification or session is
+created. Fixed `RATE_LIMIT_UNAVAILABLE` logs disclose no details. Reservations
+already require the same database, so accepting unprotected requests during
+storage failure would provide little availability benefit. There is no automatic
+retry that could double-consume an uncertain committed attempt.
+
+After a committed decision, at most once per minute per process, an indexed
+DELETE removes **up to 100 rows older than one hour**, oldest first. Blocked
+requests do not refresh timestamps. The local timer only bounds cleanup work;
+it never holds quota state. No cron, worker or history table is added. Idle
+systems retain stale rows until later traffic; a backlog drains in bounded
+batches, so this is opportunistic retention rather than a hard deletion deadline.
+Cleanup failure logs only `RATE_LIMIT_CLEANUP_FAILED` and leaves the committed
+quota decision intact; consumption/storage failures still fail closed.
+
+### Local verification and production ordering
+
+`npm test` covers core behavior and both real routes using an isolated driver
+stub, including failure, privacy and ordering cases. With a dedicated loopback
+database and explicit maintenance credentials, after building run:
+
+```powershell
+$env:RATE_LIMIT_INTEGRATION_LOCAL = '1'
+npm run test:rate-limit-integration
+Remove-Item Env:RATE_LIMIT_INTEGRATION_LOCAL
+```
+
+This opt-in command applies/repeats migrations using the existing checksum runner,
+checks 30 concurrent consumptions across independent pools, real expiry/reset,
+bounded cleanup, and built HTTP across two processes, a restart and apex/www.
+It verifies reservation success and admin session issuance, disables real SMTP,
+deletes only its synthetic hashes/marked reservation IDs and preserves `.env`.
+Runtime credentials need the permissions below before running. Do not run against
+production or alongside unrelated writers. Existing admin/retention integration
+scripts use independent ephemeral limiter secrets and remove their own keys.
+
+**Do not push this change to main before the production prerequisites are ready:**
+Hostinger auto-deploys main. After owner approval:
+
+1. Back up the intended production database and verify existing migration history.
+2. Apply the reviewed migration 003 with the existing `npm run db:migrate --
+   --maintenance` runner in a controlled shell explicitly configured for the
+   intended database/maintenance account. It records the normalized SHA-256
+   checksum in `schema_migrations`; never edit/replace migrations 001/002 or
+   manually mark an unverified migration applied. Inspect schema/history on
+   partial DDL failure; do not reset or drop existing tables.
+3. Grant the existing production runtime account **SELECT, INSERT, UPDATE,
+   DELETE on `rate_limits` only**, preserving all existing reservations grants.
+   Example placeholders (use the account's actual host, not a guessed host):
+
+   ```sql
+   GRANT SELECT, INSERT, UPDATE, DELETE ON your_database.rate_limits
+     TO 'your_runtime_user'@'your_runtime_host';
+   ```
+
+4. Add the new `RATE_LIMIT_SECRET` server variable on Hostinger and every instance,
+   with the same private generated value. Existing DB/admin/SMTP vars stay as-is.
+   The new table/setting are compatible with the currently deployed old code.
+5. Only after schema, grants, secret and proxy/client-address readiness are
+   confirmed, authorize commit/push to main and allow the normal deployment.
+6. Verify runtime health, reservation 201/429/Retry-After, admin login/reset and
+   actual trusted client-address behavior over live HTTPS. Missing prerequisites
+   intentionally produce 503; static content continues working.
+
+The rollout is approved after final verification. Phase one published migration
+003 separately; the owner reports the production table/history and Hostinger
+RATE_LIMIT_SECRET are ready. Verification runs only against a loopback test
+database, without reading/changing the hosting secret or executing production SQL.
+Future deployments still need the schema, runtime grants and shared secret in
+place before an auto-deploying push.
 
 ## Local reservation admin setup
 
@@ -206,13 +369,11 @@ valid until expiry or credential rotation (there is no server-side session regis
 
 All admin POSTs require an exact Origin; authenticated status/logout forms also
 require a cryptographically authenticated, session-bound CSRF token. Login uses
-same-origin enforcement and generic errors. A bounded process-local limiter allows
-five login attempts per client address per 15 minutes, resets after successful login,
-and expires automatically. It is neither durable across restarts nor shared across
-instances. It is a local safeguard, not production-grade rate limiting. Saturation
-temporarily rejects new addresses until entries expire. Client addresses come from
-the adapter; trusted-proxy/IP handling must be reviewed before deployment, including
-stripping untrusted forwarded headers and preventing direct access to the origin.
+same-origin enforcement and generic errors. The shared MySQL limiter allows five
+attempts per runtime client address per 15 minutes and resets after successful
+login; see [durable rate limiting](#durable-rate-limiting). Trusted-proxy/IP handling
+must be verified before deployment, including stripping untrusted forwarded
+headers and preventing direct access to the origin.
 
 Admin responses use `Cache-Control: no-store`, `X-Robots-Tag: noindex, nofollow`,
 `Referrer-Policy: same-origin` and anti-framing headers. This keeps native same-origin
@@ -242,7 +403,7 @@ For manual login, set your own hash using the interactive helper above.
 
 Production acceptance still requires verifying HTTPS/proxy Origin reconstruction,
 Secure cookies, trusted client IPs, authentication hardening
-and durable upstream rate limiting before launch. Privacy/retention/deletion rules
+and activation of the durable MySQL limiter before deployment. Privacy/retention/deletion rules
 remain unresolved. New public requests trigger the internal SMTP notification below;
 admin status updates send no mail. The administrator still contacts guests separately.
 
@@ -431,6 +592,7 @@ a local `.env` file:
 | Database | `DB_CONNECTION_LIMIT` | Optional pool bound, default 5; review against hosting limits |
 | SMTP | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, `RESERVATION_NOTIFICATION_TO` | Required for internal reservation alerts; use the Hostinger values above and supply the password privately |
 | Admin | `ADMIN_USERNAME`, `ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_SECRET` | Required for one admin; generate a production scrypt hash and fresh strong session secret, never reuse the temporary local credential |
+| Rate limiting | `RATE_LIMIT_SECRET` | New required server-only random base64url secret, at least 32 random bytes; identical across all instances; deploy migration 003 and runtime table privileges first |
 | Maintenance | `MAINTENANCE_DB_USER`, `MAINTENANCE_DB_PASSWORD` | Required only for explicit cleanup or `db:migrate -- --maintenance`; use separate credentials with appropriate operation-specific privileges |
 
 Hostinger-specific runtime/start settings, database credentials/networking/TLS,
@@ -455,10 +617,12 @@ All items below remain unverified launch requirements:
 - [ ] External host/scheme, allowed domains, Origin checks and trusted client-IP handling are verified behind the real proxy.
 - [ ] Public reservation requests are tested in production and remain pending until Turuncu confirms.
 - [ ] Admin login, Secure cookies, CSRF, status actions and logout are tested over HTTPS.
-- [ ] Durable production reservation/admin rate limiting is enabled; the process-local login limiter alone is insufficient.
+- [ ] Deploy migration 003, runtime table grants and shared RATE_LIMIT_SECRET before enabling the durable reservation/admin limiter; verify trusted client addresses and shared quotas.
 - [ ] Mobile/desktop browser acceptance is completed for navigation, gallery, form, privacy and 404.
 - [ ] Sitemap, robots.txt, canonical/social image URLs and structured data are checked on the deployed domain.
 - [ ] Production SMTP environment values are configured and a new request's internal email is received in Gmail; failed delivery still preserves HTTP 201 and the pending record.
 
-Production SMTP acceptance, deployment, durable rate limiting and automatic
-retention scheduling require separate operational work. No cron is configured.
+Production SMTP acceptance and post-deployment limiter acceptance require
+operational verification. Automatic reservation retention still
+requires owner approval; no cron is configured. Limiter-state cleanup is
+opportunistic and separate from reservation retention.

@@ -8,7 +8,6 @@ import { parseEnv } from 'node:util';
 import { loadEnv } from 'vite';
 import { hashPassword, verifyPassword } from '../src/server/admin/password.mjs';
 import { authenticate, cookieOptions, createSession, csrfToken, readAdminConfig, sessionLifetime, verifyCsrf, verifySession } from '../src/server/admin/auth.ts';
-import { createLoginLimiter } from '../src/server/admin/loginLimiter.ts';
 import { applyAdminSecurityHeaders, readAdminForm } from '../src/server/admin/http.ts';
 import { statusFilter, validReservationId, validTransition } from '../src/server/reservations/adminLogic.ts';
 
@@ -97,18 +96,6 @@ test('cookies are HttpOnly, strict, scoped, finite and Secure for production or 
   assert.deepEqual(cookieOptions(request, false), { httpOnly: true, sameSite: 'strict', secure: false, path: '/admin', maxAge: sessionLifetime });
   assert.equal(cookieOptions(request, true).secure, true);
   assert.equal(cookieOptions(new Request('https://example.com/admin/login'), false).secure, true);
-});
-
-test('local login limiter blocks repeated attempts, recovers after expiry and bounds memory', () => {
-  const limiter = createLoginLimiter(2, 1000, 2);
-  assert.equal(limiter.consume('a', 0), true);
-  assert.equal(limiter.consume('a', 1), true);
-  assert.equal(limiter.consume('a', 2), false);
-  assert.equal(limiter.consume('b', 2), true);
-  assert.equal(limiter.consume('c', 2), false);
-  limiter.reset('b');
-  assert.equal(limiter.consume('c', 3), true);
-  assert.equal(limiter.consume('a', 1000), true);
 });
 
 function form(body = 'csrf=token', headers: Record<string, string> = {}) {

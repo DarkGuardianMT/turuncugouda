@@ -8,6 +8,7 @@ import { once } from 'node:events';
 import { createHash, randomBytes } from 'node:crypto';
 import config from '../astro.config.mjs';
 import { hashPassword } from '../src/server/admin/password.mjs';
+import { createSession, readAdminConfig } from '../src/server/admin/auth.ts';
 import sharp from 'sharp';
 import { tickerProducts } from '../src/data/productTicker.ts';
 import { menu } from '../src/data/menu.ts';
@@ -326,16 +327,16 @@ assert.deepEqual(files.filter((path) => path.endsWith('.html')).sort(), [...rout
 const scripts = files.filter((file) => /\.m?js$/.test(file)); let totalJs = 0;
 for (const file of scripts) {
   const size = (await stat(file)).size; assert.ok(size < 100 * 1024, 'Unexpectedly large public JS asset'); totalJs += size;
-  assert.ok(!/ADMIN_PASSWORD_HASH|ADMIN_SESSION_SECRET|DB_PASSWORD|SMTP_|RESERVATION_NOTIFICATION_TO/.test(await readFile(file, 'utf8')));
+  assert.ok(!/ADMIN_PASSWORD_HASH|ADMIN_SESSION_SECRET|RATE_LIMIT_SECRET|DB_PASSWORD|SMTP_|RESERVATION_NOTIFICATION_TO/.test(await readFile(file, 'utf8')));
 }
 for (const content of inlineScripts.values()) {
-  assert.ok(!/ADMIN_PASSWORD_HASH|ADMIN_SESSION_SECRET|DB_PASSWORD|SMTP_|RESERVATION_NOTIFICATION_TO/.test(content));
+  assert.ok(!/ADMIN_PASSWORD_HASH|ADMIN_SESSION_SECRET|RATE_LIMIT_SECRET|DB_PASSWORD|SMTP_|RESERVATION_NOTIFICATION_TO/.test(content));
   assert.ok(Buffer.byteLength(content) < 100 * 1024); totalJs += Buffer.byteLength(content);
 }
 assert.ok(totalJs < 256 * 1024);
 let environment = {};
 try { environment = parseEnv(await readFile('.env', 'utf8')); } catch (error) { if (error.code !== 'ENOENT') throw error; }
-const secrets = ['DB_PASSWORD', 'ADMIN_PASSWORD_HASH', 'ADMIN_SESSION_SECRET', 'MAINTENANCE_DB_PASSWORD', 'SMTP_PASSWORD'].map((key) => environment[key]).filter((value) => value?.length >= 6);
+const secrets = ['DB_PASSWORD', 'ADMIN_PASSWORD_HASH', 'ADMIN_SESSION_SECRET', 'RATE_LIMIT_SECRET', 'MAINTENANCE_DB_PASSWORD', 'SMTP_PASSWORD'].map((key) => environment[key]).filter((value) => value?.length >= 6);
 for (const file of await filesUnder('dist')) {
   if (!/\.(html|js|mjs|css|json|xml|txt)$/.test(file)) continue;
   const content = await readFile(file, 'utf8'); for (const secret of secrets) assert.ok(!content.includes(secret), 'Private configuration must not be baked into output');
@@ -371,10 +372,11 @@ function proxyPost(path, body, headers) {
 }
 
 const adminPassword = randomBytes(32).toString('base64url');
+const adminEnvironment = { ADMIN_USERNAME: 'seo-runtime-test', ADMIN_PASSWORD_HASH: await hashPassword(adminPassword),
+  ADMIN_SESSION_SECRET: randomBytes(32).toString('base64url') };
 const server = spawn(process.execPath, ['./dist/server/entry.mjs'], {
   env: { ...process.env, HOST: '127.0.0.1', PORT: String(port), DB_HOST: '', DB_USER: '', DB_PASSWORD: '',
-    ADMIN_USERNAME: 'seo-runtime-test', ADMIN_PASSWORD_HASH: await hashPassword(adminPassword),
-    ADMIN_SESSION_SECRET: randomBytes(32).toString('base64url') },
+    ...adminEnvironment, RATE_LIMIT_SECRET: randomBytes(32).toString('base64url') },
   stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true,
 });
 server.stdout.resume(); server.stderr.resume();
@@ -421,12 +423,11 @@ try {
 
   const localApi = await fetch(`${base}/api/reservations`, { method: 'POST', body: '{}',
     headers: { origin: base, 'content-type': 'application/json' } });
-  assert.equal(localApi.status, 400);
-  assert.equal((await localApi.json()).error.code, 'VALIDATION_ERROR');
+  assert.equal(localApi.status, 503);
+  assert.equal((await localApi.json()).error.code, 'SERVICE_UNAVAILABLE');
   const localLogin = await fetch(`${base}/admin/auth/login`, { method: 'POST', redirect: 'manual',
     headers: { origin: base }, body: new URLSearchParams({ username: 'seo-runtime-test', password: adminPassword }) });
-  assert.equal(localLogin.status, 303);
-  assert.equal(localLogin.headers.get('location'), '/admin/reservations');
+  assert.equal(localLogin.status, 503, 'Login fails closed without limiter storage');
 
   // Simuleer TLS-beëindiging op de proxy: de lokale verbinding met Node blijft HTTP.
   for (const host of ['turuncugouda.com', 'www.turuncugouda.com']) {
@@ -437,11 +438,11 @@ try {
       { ...headers, 'x-forwarded-host': `${host}:443` }, { host, origin: externalOrigin, 'x-forwarded-proto': 'https' }]) {
       const requestHeaders = { ...proxyHeaders, 'content-type': 'application/json' };
       const response = await proxyPost('/api/reservations', '{}', requestHeaders);
-      assert.equal(response.status, 400, `Proxy origin accepted for ${host} with ${JSON.stringify(proxyHeaders)}`);
-      assert.equal((await response.json()).error.code, 'VALIDATION_ERROR');
+      assert.equal(response.status, 503, `Proxy origin accepted before unavailable limiter for ${host}`);
+      assert.equal((await response.json()).error.code, 'SERVICE_UNAVAILABLE');
     }
     const noOrigin = { ...headers }; delete noOrigin.origin;
-    assert.equal((await proxyPost('/api/reservations', '{}', noOrigin)).status, 400);
+    assert.equal((await proxyPost('/api/reservations', '{}', noOrigin)).status, 503);
     assert.equal((await proxyPost('/admin/auth/login', new URLSearchParams(), noOrigin)).status, 403);
     for (const incomplete of [{ origin: externalOrigin, 'x-forwarded-host': host },
       { origin: externalOrigin, 'x-forwarded-proto': 'https' }]) {
@@ -449,11 +450,11 @@ try {
       assert.equal((await proxyPost('/admin/auth/login', new URLSearchParams(), incomplete)).status, 403);
     }
     const login = await submit('/admin/auth/login', new URLSearchParams({ username: 'seo-runtime-test', password: adminPassword }));
-    assert.equal(login.status, 303, `Native login passes Astro and application Origin checks for ${host}`);
-    assert.equal(login.headers.get('location'), '/admin/reservations');
-    const setCookie = login.headers.get('set-cookie');
-    assert.ok(setCookie && /Secure/i.test(setCookie) && /HttpOnly/i.test(setCookie) && /SameSite=Strict/i.test(setCookie));
-    const cookie = setCookie.split(';')[0];
+    assert.equal(login.status, 503, `Native login reaches unavailable limiter for ${host}`);
+    assert.equal(login.headers.get('set-cookie'), null);
+    // Dit databasevrije script gebruikt een echte ondertekende testsessie voor CSRF/proxyregressie.
+    // Succesvolle HTTP-login/cookie-uitgifte wordt met MySQL in de integratietests geverifieerd.
+    const cookie = `turuncu_admin=${createSession(readAdminConfig(adminEnvironment))}`;
     const list = await fetch(`${base}/admin/reservations`, { headers: { ...headers, cookie } });
     assert.equal(list.status, 503, 'Authenticated request reaches the missing-DB failure, not a login redirect');
     const csrf = (await list.text()).match(/name="csrf" value="([A-Za-z0-9_-]+)"/)?.[1];
@@ -488,7 +489,7 @@ try {
       assert.equal(response.status, 403);
     }
   }
-  console.log('PASS: HTTP reverse-proxy simulation accepts both HTTPS domains, native admin login/Secure cookies and CSRF logout; rejects foreign/mismatched Origins and spoofed host/protocol/port headers.');
+  console.log('PASS: HTTP reverse-proxy simulation accepts both HTTPS domains, missing limiter storage fails closed, signed-session CSRF logout works; rejects foreign/mismatched Origins and spoofed host/protocol/port headers.');
 } finally {
   if (server.exitCode === null) { const stopped = once(server, 'exit'); server.kill(); await stopped; }
 }

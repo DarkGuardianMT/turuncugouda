@@ -9,6 +9,7 @@ import { readDatabaseConfig } from '../src/server/db/config.mjs';
 import { readMaintenanceDatabaseConfig } from '../src/server/db/maintenanceConfig.mjs';
 import { todayInAmsterdam } from '../src/lib/reservationDate.ts';
 import { hashPassword } from '../src/server/admin/password.mjs';
+import { hashRateLimitSubject } from '../src/server/rateLimit/core.ts';
 
 if (process.env.RETENTION_INTEGRATION_LOCAL !== '1') throw new Error('Set RETENTION_INTEGRATION_LOCAL=1 explicitly.');
 const maintenance = readMaintenanceDatabaseConfig(process.env);
@@ -21,6 +22,7 @@ const cutoff = '1900-01-03';
 let server;
 let before;
 const originalEnvironment = await readFile('.env');
+const rateLimitSecret = randomBytes(32).toString('base64url');
 
 async function insert(date, status = 'pending', anonymized = false) {
   const [result] = await db.execute(
@@ -60,7 +62,8 @@ try {
   const base = `http://localhost:${port}`;
   const password = randomBytes(32).toString('base64url');
   server = spawn(process.execPath, ['./dist/server/entry.mjs'], { env: { ...process.env, HOST: '127.0.0.1', PORT: String(port),
-    ADMIN_USERNAME: marker, ADMIN_PASSWORD_HASH: await hashPassword(password), ADMIN_SESSION_SECRET: randomBytes(32).toString('base64url') },
+    ADMIN_USERNAME: marker, ADMIN_PASSWORD_HASH: await hashPassword(password), ADMIN_SESSION_SECRET: randomBytes(32).toString('base64url'),
+    RATE_LIMIT_SECRET: rateLimitSecret, SMTP_HOST: '', SMTP_PASSWORD: '' },
     stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
   server.stdout.resume(); server.stderr.resume();
   let ready = false;
@@ -119,6 +122,8 @@ try {
 } finally {
   if (server && server.exitCode === null) { const stopped = once(server, 'exit'); server.kill(); await stopped; }
   try {
+    for (const address of ['127.0.0.1', '::1']) await db.execute('DELETE FROM rate_limits WHERE subject_hash = ? AND scope IN (?, ?)',
+      [hashRateLimitSubject(address, rateLimitSecret), 'admin_login', 'reservation']);
     // Exacte aangemaakte IDs plus statusafhankelijke testmarkering; nooit bestaande rijen opruimen.
     for (const id of ids) await db.execute('DELETE FROM reservations WHERE id = ? AND (name = ? OR (name IS NULL AND anonymized_at IS NOT NULL))', [id, marker]);
     const [remaining] = await db.query('SELECT COUNT(*) AS count FROM reservations');
