@@ -231,6 +231,36 @@ assert.ok(booking.includes('href="/reserveren"') && booking.includes(site.reserv
 assert.ok(!/wa\.me|Instagram|TikTok|Bel ons/i.test(booking), 'Form remains the primary booking action');
 assert.ok(social.includes('Volg ons') && social.includes(site.instagram.href) && social.includes(site.tiktok.href));
 assert.ok(social.includes(site.instagram.handle) && social.includes(site.tiktok.handle));
+function assertDecorativeSocialIcons(markup, context) {
+  const icons = [...markup.matchAll(/<svg\b[^>]*class="social-icon"[^>]*>/g)].map((match) => attributes(match[0]));
+  assert.equal(icons.length, 2, `Two shared social icons: ${context}`);
+  for (const icon of icons) {
+    assert.equal(icon['aria-hidden'], 'true'); assert.equal(icon.focusable, 'false');
+    assert.equal(icon.width, '20'); assert.equal(icon.height, '20');
+  }
+  assert.ok(!/<title\b/.test(markup), `Decorative icons do not duplicate platform names: ${context}`);
+}
+assertDecorativeSocialIcons(social, 'homepage Contact');
+for (const [path, html] of htmlByPath) {
+  const footer = html.match(/<footer\b[^>]*class="site-footer"[^>]*>([\s\S]*?)<\/footer>/)?.[1];
+  assert.ok(footer, `Global footer on ${path}`);
+  const navigation = footer.match(/<nav\b[^>]*aria-label="Footernavigatie"[^>]*>([\s\S]*?)<\/nav>/)?.[1];
+  assert.ok(navigation);
+  const links = [...navigation.matchAll(/<a\b[^>]*href="([^"]+)"[^>]*>([^<]+)<\/a>/g)];
+  assert.deepEqual(links.map((match) => [match[1], match[2]]), [['/', 'Home'], ['/menu', 'Menu'], ['/galerij', 'Galerij'], ['/reserveren', 'Reserveren']]);
+  const active = links.filter((match) => attributes(match[0])['aria-current'] === 'page');
+  assert.deepEqual(active.map((match) => match[1]), ['/', '/menu', '/galerij', '/reserveren'].includes(path) ? [path] : []);
+  assert.match(footer, /<address\b/);
+  for (const text of [site.address, site.postalAddress, site.location, site.phone]) assert.ok(footer.includes(text));
+  assert.ok(footer.includes(`href="${site.whatsappHref}"`) && footer.includes(`href="${site.phoneHref}"`));
+  assert.ok(footer.indexOf(`href="${site.whatsappHref}"`) < footer.indexOf(`href="${site.phoneHref}"`));
+  assert.ok(footer.includes(`href="${site.instagram.href}"`) && footer.includes(`href="${site.tiktok.href}"`));
+  assert.match(footer, /class="footer-social"[^>]*role="group"[^>]*aria-label="Sociale media"/);
+  assertDecorativeSocialIcons(footer, path);
+  assert.ok(decode(footer).includes(`© ${new Date().getUTCFullYear()} Turuncu Gouda`));
+  assert.match(footer, /href="\/privacy"/);
+}
+console.log('PASS: shared footer navigation/current states, semantic address, WhatsApp/phone hierarchy, privacy/copyright and decorative social icons on all public pages.');
 assert.ok(contact.indexOf(social) > contact.indexOf(directContact), 'Social links follow direct contact');
 assert.doesNotMatch(contact, /Bel ons|via Instagram|stuur[^<]*DM/i);
 const location = labelledSection(contact, 'visit-location-title');

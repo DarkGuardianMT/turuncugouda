@@ -66,6 +66,10 @@ const favoritePhotos = favorites.flatMap(({ photos: groupPhotos }) => groupPhoto
 </BaseLayout>
 
 <style>
+  main { --home-section-space: clamp(3rem, 5vw, 4.5rem); }
+  .hero { padding-bottom: var(--home-section-space); }
+  :global(#over-ons.section) { padding-block: var(--home-section-space); }
+  :global(#contact.section) { padding-block: var(--space-4) var(--home-section-space); }
   .favorites-preview {
     padding-block: var(--space-3);
     scroll-margin-top: var(--header-clearance);

@@ -1,0 +1,20 @@
+---
+interface Props { platform: 'instagram' | 'tiktok'; }
+const { platform } = Astro.props;
+---
+
+<svg class="social-icon" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+  {platform === 'instagram' ? (
+    <g fill="none" stroke="currentColor" stroke-width="1.7">
+      <rect x="3.5" y="3.5" width="17" height="17" rx="5" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="17.5" cy="6.5" r="0.9" fill="currentColor" stroke="none" />
+    </g>
+  ) : (
+    <path fill="currentColor" d="M16.4 2h-3.2v13.2a3.05 3.05 0 1 1-2.6-3V8.9a6.25 6.25 0 1 0 5.8 6.3V8.4A8.1 8.1 0 0 0 21 9.8V6.6A4.6 4.6 0 0 1 16.4 2Z" />
+  )}
+</svg>
+
+<style>
+  .social-icon { display: block; flex: 0 0 auto; }
+</style>

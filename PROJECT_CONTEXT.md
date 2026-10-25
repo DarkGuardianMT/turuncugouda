@@ -40,7 +40,7 @@ Homepage `/` (redesign approved for publication on 23 October 2026):
 
 - Header/navigation
 - Hero
-- Product-name ticker in dark Turuncu orange with warm cream text
+- Product-name ticker in warm dark brown with cream text and orange ornaments
 - Compact nine-image favorites preview; the section label is screen-reader-only
 - High Tea highlight with approved temporary AI image
 - Over ons
@@ -528,6 +528,53 @@ production build and extended `npm run test:seo` pass. The generated PNGs and al
 ICO frames preserve transparency around the artwork. The visible bounding boxes
 are 14×14px on the 16px canvas and 28×28px on the 32px canvas: 87.5% of each axis
 and 76.6% of canvas area. Coverage checks reject the previous tiny-logo output.
+
+## Approved homepage visual polish (25 October 2026)
+
+The owner approved this variant for production after final verification.
+
+- The homepage keeps its section order, hero content/layout, nine-image favorites,
+  High Tea copy, Over Turuncu copy and verified business/contact data. Spacing is
+  tightened only on the homepage: the hero's lower space and Over Turuncu use a
+  48–72px rhythm; Contact starts with 32px rather than doubling the preceding
+  section gap; High Tea's upper gap is 32px.
+- ProductTicker uses warm brown `#3a281f`, cream serif text `#f6eddf`, thin cream
+  rules at 20% opacity and orange `#d65b1c` ornaments. Natural case and tighter letter spacing
+  soften the strip. Its product list, two-copy loop, 70-second animation,
+  pause/resume, hover/focus pause and reduced-motion static row are unchanged.
+- A shared static `SocialIcon.astro` provides 20px currentColor Instagram/TikTok
+  SVGs, hidden from assistive technology and unfocusable. Contact retains visible
+  platform names/handles and 44px targets; social links remain secondary to
+  WhatsApp and separate from reservation actions. No dependency/JavaScript added.
+- SiteFooter uses three columns from 768px: compact existing Brand, four public
+  navigation links and semantic visit/contact information. Mobile stacks these
+  blocks with a two-column navigation list. WhatsApp precedes secondary phone;
+  the same social icons accompany platform names. A subtle rule separates the
+  deterministic UTC build-year copyright and Privacy link.
+- `--color-dark: #3a281f` is shared by the ticker, High Tea and the footer.
+  Footer text is cream `#f6eddf`, secondary text `#d1beac`, rules cream at 20%
+  opacity and underline accents orange `#d65b1c`.
+  Scoped footer CSS replaces obsolete global footer rules. Cream focus outlines
+  remain visible on its dark surface, including the Brand link and active routes.
+- Built verification additionally checks footer navigation/current-page states,
+  address/contact links, copyright/Privacy and decorative icon semantics on all
+  public pages. Backend/rate-limit/admin/SMTP/migration files and SEO/domain
+  configuration remain unchanged.
+- Verification: 168 Node tests, zero-diagnostic Astro checks, build and expanded
+  SEO/HTTP checks pass. Native Chrome review covers 390/768/1440/1920px and
+  `/reserveren` at 390/1440px; the full-page PNG widths match the requested widths
+  at DPR 2 without observed horizontal overflow. Lazy images were brought into
+  view before the final desktop captures. Footer heights are about 595/389/366/366px.
+  The final approved warm-brown palette retains cream text and visible focus states.
+- Keyboard review confirms visible Contact social and cream footer focus states,
+  logical WhatsApp/phone/social/Privacy order, and ticker pause/resume. Reduced
+  motion was checked using DevTools tab emulation, then restored to no override.
+  Public homepage/reservation console checks show no application warnings/errors;
+  Chrome's console-paste protection was left intact when it blocked diagnostics.
+  Screenshots remain ignored under `.tmp/ui-review/polish-home-{390,768,1440,1920}.png`,
+  `polish-reserveren-{390,1440}.png` and `polish-ticker-reduced-motion-768.png`.
+  No outstanding layout regression was found. Header navigation is unchanged,
+  with no Home link; its existing reservation CTA remains labelled Reserveer.
 
 ## Approved durable rate limiting (24 October 2026)
 

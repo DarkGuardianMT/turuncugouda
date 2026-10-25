@@ -27,7 +27,8 @@ import { tickerProducts } from '../data/productTicker';
 <style>
   .product-ticker {
     padding-block: var(--space-1);
-    background: var(--color-primary-dark); color: var(--color-background);
+    background: var(--color-dark); color: var(--color-background);
+    border-block: 1px solid rgb(246 237 223 / 20%);
   }
   .ticker-inner { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--space-2); }
   .ticker-viewport {
@@ -43,9 +44,9 @@ import { tickerProducts } from '../data/productTicker';
   .ticker-item {
     display: inline-flex; align-items: center; gap: var(--space-4); white-space: nowrap;
     font-family: var(--font-display); font-size: clamp(1.125rem, 2vw, 1.75rem);
-    font-weight: 400; line-height: 1.2; letter-spacing: 0.035em; text-transform: uppercase;
+    font-weight: 400; line-height: 1.2; letter-spacing: 0.01em;
   }
-  .ticker-separator { color: inherit; opacity: 0.85; font-size: 0.5em; }
+  .ticker-separator { color: var(--color-primary); font-size: 0.45em; }
   .ticker-pause, .ticker-toggle, .ticker-paused { display: none; }
   .ticker-toggle {
     grid-column: 2; grid-row: 1; align-items: center; justify-content: center;

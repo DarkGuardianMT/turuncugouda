@@ -1,5 +1,6 @@
 ---
 import Section from './Section.astro';
+import SocialIcon from './SocialIcon.astro';
 import { site, openingHours } from '../data/site';
 ---
 
@@ -42,8 +43,8 @@ import { site, openingHours } from '../data/site';
     <section class="visit-social" aria-labelledby="visit-social-title">
       <h3 id="visit-social-title">Volg ons</h3>
       <ul>
-        <li><a href={site.instagram.href}>Instagram <span>{site.instagram.handle}</span></a></li>
-        <li><a href={site.tiktok.href}>TikTok <span>{site.tiktok.handle}</span></a></li>
+        <li><a href={site.instagram.href}><SocialIcon platform="instagram" /><span class="social-label">Instagram <span class="social-handle">{site.instagram.handle}</span></span></a></li>
+        <li><a href={site.tiktok.href}><SocialIcon platform="tiktok" /><span class="social-label">TikTok <span class="social-handle">{site.tiktok.handle}</span></span></a></li>
       </ul>
     </section>
   </div>
@@ -70,8 +71,10 @@ import { site, openingHours } from '../data/site';
   .visit-reservation p { max-width: 38rem; color: var(--color-muted); }
   .visit-reservation .button { margin-top: var(--space-3); }
   .visit-social ul { margin: 0; padding: 0; list-style: none; }
-  .visit-social a { display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--space-1); min-height: 44px; width: fit-content; font-size: var(--text-small); }
-  .visit-social a span { color: var(--color-muted); }
+  .visit-social a { display: flex; align-items: center; gap: var(--space-1); min-height: 44px; width: fit-content; max-width: 100%; font-size: var(--text-small); text-decoration: none; }
+  .social-label { display: flex; flex-wrap: wrap; gap: 0 var(--space-1); }
+  .social-handle { color: var(--color-muted); }
+  .visit-social a:hover .social-label { color: var(--color-primary-dark); text-decoration: underline; }
   @media (min-width: 48rem) {
     .visit-panels { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .visit-location { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); }
