@@ -32,9 +32,18 @@ snapshots. Technical contracts, commands and operational procedures belong in
   backup and isolated restore. The owner previously reported migration 003/history
   and `RATE_LIMIT_SECRET` ready; that report does not verify runtime access or quotas.
   Deployment is complete; end-to-end production acceptance remains open.
-- **Recorded security finding:** the 27 October npm audit reported undici and zod
-  High, fast-uri Moderate (three affected packages). Recheck the current lockfile
-  before claiming these findings are still current or resolved.
+- **A03 locally verified — 27 October:** remediation on baseline
+  `726a86077feb53de7760d197cdad23a53ddb0c3c` updates only lockfile entries for
+  undici 8.11.2 → 8.12.3, zod 4.6.5 → 4.6.7 and fast-uri 3.1.8 → 3.1.9 within
+  existing ranges. The fresh baseline audit found two High/one Moderate affected
+  packages, covering 13 advisories; after clean installation, full and production-only
+  npm audits report zero vulnerabilities. Under Node 22.19.0, all 168 tests pass,
+  Astro check has zero diagnostics, and build/SEO verification pass in an isolated
+  copy without project environment files or production services. Direct dependencies,
+  application code and runtime requirements are unchanged; no overrides were added.
+  Undici already required Node >=22.19.0 before this update; confirm the actual
+  Hostinger Node 22 patch version before a release. These fixes are local only,
+  awaiting explicit commit/push approval; production has not received them.
 - **Owner-dependent/deferred:** retention duration and maintenance/privacy workflow,
   remaining prices/High Tea conditions and reservation policy require confirmation.
   Guest emails, past-reservation admin view, capacity features, CMS and chatbot
@@ -1043,7 +1052,7 @@ Detailed procedures and verification status live in Development and operations.
 | --- | --- |
 | A01 | Complete authorized live reservation → pending DB row → admin login/status update → internal SMTP/inbox verification. |
 | A02 | Verify actual proxy `clientAddress`, untrusted-header handling and persistent/shared rate-limit behavior, including runtime grants and migration 003. |
-| A03 | Recheck and remediate the dependency audit: undici/zod High and fast-uri Moderate were reported on 27 October; do not assume current or resolved findings. |
+| A03 | Verified locally on 27 October: undici 8.12.3, zod 4.6.7, fast-uri 3.1.9; clean install, full/production-only audit (zero findings), 168 tests, Astro check, build and SEO pass under Node 22.19.0. Await release approval and confirm the actual Hostinger Node patch version; production is unchanged. Recheck advisories for future releases. |
 | A04 | Verify backups and a restore into an isolated test database, never over production or unrelated data. |
 | A05 | Obtain owner-approved retention duration, privacy wording and manual maintenance workflow, including mailbox copies. |
 | A06 | Obtain owner confirmation of remaining menu prices/product wording, High Tea rules and reservation policy/capacity expectations. |
