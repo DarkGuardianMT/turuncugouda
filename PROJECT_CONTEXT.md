@@ -1,29 +1,74 @@
 # TuruncuGouda project context
 
+## CURRENT STATUS — 27 October 2026
+
+This section is the authoritative status summary. Dated checkpoints below record
+earlier decisions and evidence; their test counts and pending items apply to those
+snapshots. Technical contracts, commands and operational procedures belong in
+[Development and operations](docs/DEVELOPMENT.md).
+
+- **Implemented:** Astro 7, strict TypeScript, the Node standalone adapter,
+  MySQL/MariaDB through mysql2, Nodemailer and plain CSS. Public content is
+  prerendered; reservation API and protected admin routes run on the server.
+  The five public pages are `/`, `/menu`, `/galerij`, `/reserveren` and `/privacy`.
+  Responsive layouts include the homepage favorites/ticker, High Tea highlight,
+  printed/text menu, filtered gallery/lightbox, shared footer and favicon set.
+  Reservation requests start `pending`; protected admin supports `confirmed` and
+  `cancelled` transitions. Internal SMTP alerts and persistent database rate
+  limiting for reservation/login POSTs, including migration 003, are implemented.
+- **Locally tested:** the 27 October audit of main commit
+  `e4b609483fa33d5fb00e86a3549b8a2dc2e766c8` records 168/168 native Node tests,
+  zero Astro check diagnostics, and passing build and SEO checks. Prior isolated
+  local DB integrations exercised creation, admin/session/CSRF/status flows,
+  retention and durable quotas across processes/restarts. These are local results.
+- **Production verified within audit scope:** the site is deployed on Hostinger
+  at `https://www.turuncugouda.com/`; GitHub `main` automatically deploys there.
+  All five public pages returned 200; public content and SEO endpoints were
+  checked, and unauthenticated admin reservations redirected to login. Live checks
+  used GET requests and harmless UI interactions; they did not prove backend acceptance.
+- **Pending live verification:** a successful reservation POST/stored pending row,
+  authenticated admin session/status update, SMTP acceptance and inbox receipt,
+  actual DB grants, trusted proxy `clientAddress`, shared production quotas,
+  backup and isolated restore. The owner previously reported migration 003/history
+  and `RATE_LIMIT_SECRET` ready; that report does not verify runtime access or quotas.
+  Deployment is complete; end-to-end production acceptance remains open.
+- **Recorded security finding:** the 27 October npm audit reported undici and zod
+  High, fast-uri Moderate (three affected packages). Recheck the current lockfile
+  before claiming these findings are still current or resolved.
+- **Owner-dependent/deferred:** retention duration and maintenance/privacy workflow,
+  remaining prices/High Tea conditions and reservation policy require confirmation.
+  Guest emails, past-reservation admin view, capacity features, CMS and chatbot
+  remain unimplemented; see the prioritized backlog below.
+
+Never commit or push without explicit user approval: `main` auto-deploys to
+Hostinger production. Historical publication approvals below apply only to their
+original tasks. See [agent guidance](AGENTS.md).
+
 ## Project overview and purpose
 
 This is a complete rebuild of the website for Turuncu Café en Bakkerij in Gouda:
-https://www.turuncugouda.com/. The site will present the business, its menu and
+https://www.turuncugouda.com/. The site presents the business, its menu and
 products, photos, practical visit information, and a public reservation-request form.
 
-The existing site's source code and hosting are inaccessible. We are rebuilding
-from scratch in the existing GitHub repository, preserving its Git history.
-The live site can be consulted later as reference material; its content is not
-automatically verified or current.
+The original site's source code and hosting were inaccessible. The rebuild was
+created in the existing GitHub repository, preserving its history, and is now live
+on Hostinger. Legacy-site content is reference material, not automatically verified
+or current business information.
 
 ## Why rebuild
 
 Preserve recognizable branding while improving design, user experience, mobile
 responsiveness, performance, accessibility, and SEO. A pixel-perfect clone is
-not the goal. The gallery will be one of the largest new features.
+not the goal. The gallery is one of the implemented core features.
 
 ## Current architecture decisions
 
-- Current stable Astro, strict TypeScript, npm, and plain CSS.
+- Astro 7, strict TypeScript, npm, and plain CSS; the lockfile records installed versions.
 - `output: 'static'` keeps public content prerendered. The official `@astrojs/node`
   standalone adapter provides runtime execution for `POST /api/reservations`,
   which opts out with `prerender = false`; admin pages/actions do likewise. No deprecated hybrid mode is used.
-- MySQL/MariaDB via `mysql2/promise`; production direction is Hostinger MySQL.
+- MySQL/MariaDB via `mysql2/promise`, with Hostinger MySQL as the production database.
+- Nodemailer provides server-only internal reservation notifications over SMTP.
 - Prefer Astro components for content; add client JavaScript only for real interaction needs.
 - Vue may be added later for focused interactive islands when justified.
 - Hybrid navigation: main business content on `/` with anchor navigation,
@@ -31,10 +76,10 @@ not the goal. The gallery will be one of the largest new features.
 - Keep content local and separate from presentation.
 - Avoid abstractions, integrations, or services for features that do not exist yet.
 
-## Planned pages and navigation — current direction
+## Implemented pages and navigation
 
-This is a working direction, not an irreversible specification. Final sections
-and content will be refined with the business owner.
+The current structure is implemented. Further content changes require verified
+business information and agreement with the owner.
 
 Homepage `/` (redesign approved for publication on 23 October 2026):
 
@@ -48,12 +93,12 @@ Homepage `/` (redesign approved for publication on 23 October 2026):
 - Footer
 
 Separate pages: `/menu` for the digital menu and `/galerij` for the photo collection.
+`/privacy` describes reservation-data use and is linked from the form and footer.
 
 Reservation requests: `/reserveren`, connected to the existing create-only API.
 
-Existing bakery/product promotional sections may be removed, merged, or redesigned;
-those decisions are not final. The homepage now includes structural versions of
-these sections with real branding, photography, and approved business copy.
+The homepage uses real branding, supplied photography and approved business copy;
+the favorites mosaic replaces the earlier Café/Bakkerij/Lunch promotional cards.
 Empty extra-content and Instagram-feed placeholders have been removed for now.
 `/galerij` has a captioned responsive photo grid and an accessible lightbox;
 `/reserveren` accepts requests awaiting confirmation by Turuncu.
@@ -71,7 +116,7 @@ uses `Turuncu maakt u blij` in warm dark-orange, regular italic Georgia with com
 balanced wrapping; `Café • Bakkerij • Lunch` remains in the hero and footer.
 The visual foundation uses restrained orange, cream, warm white, and dark brown.
 Warm cream is the primary page background, with slightly lighter cream sections
-and a deeper warm footer surface for subtle hierarchy. White and near-white are
+and a dark-brown footer with cream text. White and near-white are
 reserved mainly for cards, image containers, and small UI surfaces. The established
 orange/brown Turuncu identity remains the basis.
 CSS custom properties define palette, spacing, radii, container width, typography,
@@ -90,8 +135,8 @@ These are initial design decisions, not final owner-approved brand specification
 
 ## Data and content strategy
 
-Initially use local TypeScript/JSON-style files in `src/data/`. The current file
-contains the business name, approved subtitle, and verified contact information. Public-facing
+Use local typed data in `src/data/` for business information, menu and photo metadata.
+This includes the business name, approved subtitle, and verified contact information. Public-facing
 content is primarily Dutch. Do not invent business facts, prices, opening hours,
 menu items, addresses, or claims; verify real content with the owner.
 No CMS is being added at this stage.
@@ -201,83 +246,46 @@ Astro generates larger WebP versions capped at 1600px and source resolution;
 their URLs are data attributes, assigned to the modal image only when requested.
 No large images are preloaded. Thumbnails retain responsive Astro Image output.
 
-## Reservation backend foundation — Phase 2
+## Implemented reservation backend
 
-The foundation uses a create-only `POST /api/reservations` runtime endpoint,
-reusable pure validation, and `src/server/reservations/reservationService.ts`.
-The `/reserveren` form uses this API; future AI chatbot callers must share the
-validation and service rather than duplicating business rules or connecting directly to MySQL.
-The service takes validated/normalized data, uses prepared parameters, returns
-only ID/status, and always inserts `pending`. Statuses are `pending`, `confirmed`,
-and `cancelled`; public clients cannot choose status or database-managed fields.
-There is no public reservation list/read endpoint.
+The create-only public reservation API and connected form share reusable validation
+and a server-only service. Database access is lazy and parameterized, so public
+builds require no credentials. New requests always start `pending`; the public
+API exposes neither reservation records nor database-managed field control.
+Dates use Europe/Amsterdam and verified opening hours. Desired times are requests,
+not capacity availability; no extra High Tea lead-time rule is enforced by the API.
 
-`src/server/db/pool.ts` creates a lazy, reusable mysql2 Promise pool guarded by
-`astro:env/server`. DB configuration is checked only on use, so static builds
-need no credentials or active database. Server-side `DB_HOST`, `DB_PORT`, `DB_NAME`,
-`DB_USER`, and nonempty `DB_PASSWORD` are required; `DB_CONNECTION_LIMIT` defaults
-to 5. `.env.example` has placeholders only. Never use public database variables.
+The form provides field errors, prevents duplicate concurrent submission and shows
+received-request wording after success. It never promises a confirmed booking.
+WhatsApp/phone remain available when JavaScript is absent. The protected admin
+lists today/future requests, validates status transitions and stale updates, and
+requires server authentication, exact Origin checks and session-bound CSRF for
+mutations. The administrator contacts guests separately after status changes.
 
-Versioned single-statement SQL lives in `db/migrations/`; the first migration
-creates reservations with contact details, date/time, guest count, message,
-status, timestamps, and nonunique date/time and status indexes. `npm run db:migrate`
-uses a small Node runner, filename/checksum history in `schema_migrations`, and a
-database-scoped advisory lock. It neither creates/drops databases nor resets data.
-DDL implicitly commits: interrupted migrations require schema/history inspection,
-not an automatic reset. README contains local setup and recovery guidance.
+Migrations 001/002/003 cover reservations, manual anonymization and persistent rate
+limiting. The shared database limiter protects reservation and login POSTs, fails
+closed, and stores HMAC-derived address identifiers rather than raw IPs. Internal
+SMTP notification follows storage; failure preserves the pending row and API success.
+Privacy/retention approval and production acceptance remain open as listed above.
 
-Validation trims text, lowercases optional email, and preserves phone formatting.
-Dates must be real, non-past dates in Europe/Amsterdam and Tuesday–Saturday.
-Times are `>= 10:00` and `< 16:30` with no enforced slot interval or extra lead time.
-Guest count is an integer 1–65535 (SQL storage limit, not confirmed capacity).
-Name/phone/email/message maxima are 120/32/254/1000 characters. Email/message are
-optional; unexpected fields are rejected. Requests have a 16 KiB technical body
-limit and JSON-only transport. Internal errors and reservation PII are not returned
-or logged. No permissive CORS configuration is added.
+See [local setup and API contracts](docs/DEVELOPMENT.md#local-reservation-backend-setup),
+[admin security](docs/DEVELOPMENT.md#local-reservation-admin-setup),
+[rate limiting](docs/DEVELOPMENT.md#durable-rate-limiting),
+[SMTP](docs/DEVELOPMENT.md#reservation-notification-email) and
+[manual retention](docs/DEVELOPMENT.md#reservation-privacy-and-manual-retention-maintenance)
+for detailed procedures. Do not duplicate operational instructions here.
 
-### Public reservation form
+## Historical implementation checkpoints
 
-`/reserveren` uses a semantic form and focused vanilla TypeScript. It POSTs the
-existing JSON contract, maps authoritative server field errors to native controls,
-prevents simultaneous submission, and replaces the form with a received-request
-panel on HTTP 201. Personal fields are reset; the summary contains date, desired
-time, and party size only. A successful request remains `pending`, never automatically
-confirmed or guaranteed a table. A new-request action starts with empty fields.
+The dated sections through the homepage redesign preserve major decisions and
+verification evidence from 19–25 October. Statements about unavailable features,
+local browser tooling, publication approval or outstanding launch work describe
+that checkpoint only; use CURRENT STATUS for today's implementation and acceptance.
+Historical “production build/preview” checks mean a local built server unless live
+Hostinger verification is explicitly stated. Old test counts and dependency audits
+are historical observations, not current assurance.
 
-The UI offers 30-minute desired-time options from 10:00 through 16:00. Backend
-minute rules remain unchanged. Pure helpers in `src/lib/reservationDate.ts` share
-Amsterdam date/minimum and closed-day feedback with server validation. Email and
-message remain optional. No restaurant capacity, special High Tea rule, or response
-time is invented; High Tea conditions remain separate and need owner confirmation.
-
-The header Reserveer CTA and homepage primary reservation action now link to
-`/reserveren`; ordinary Contact links retain their destination. WhatsApp is the
-preferred channel for questions and the no-JavaScript fallback, with the verified
-phone number secondary. Instagram/TikTok are social links only. Before
-enhancement the fieldset is disabled, preventing accidental non-JSON submissions.
-A concise data-use note is shown beside Submit, without inventing a full privacy policy.
-
-The transport-only `contact_url` honeypot is hidden, unfocusable, and excluded from
-reservation data. Empty/absent values reach normal validation; filled or mistyped
-values receive a generic 400 `INVALID_REQUEST` before creation, without describing
-the trap. Status/ID/timestamp injection remains rejected. The API rejects a supplied
-Origin that differs from the request URL's origin and cross-site fetch metadata;
-Origin-less non-browser clients remain supported. No CORS permissions are added
-by the application. Hostinger must preserve the external host/scheme through its
-trusted proxy, and real HTTPS same-origin requests must be verified before launch.
-The installed Node adapter normalizes unlisted hosts to localhost; standalone
-local checks use localhost. Configure the canonical allowed host and verify URL
-scheme reconstruction after TLS termination when hosting is known. Until then,
-Origin mismatches fail closed; no arbitrary forwarded-header trust is introduced.
-
-Durable MySQL reservation/admin limiting is approved for production (see below).
-The owner reports migration 003/history and RATE_LIMIT_SECRET are ready on Hostinger;
-the implementation push follows final verification. Runtime table grants remain
-required. CAPTCHA is not included. Internal SMTP notifications are now implemented below;
-guest email, capacity management, and chatbot implementation remain deferred. Privacy, retention,
-deletion, and any further spam protection remain production decisions.
-
-## Minimal local reservation admin (19 October 2026)
+## Historical checkpoint: Minimal local reservation admin (19 October 2026)
 
 - `/admin/login` and `/admin/reservations` are runtime-rendered Astro pages, with
   POST-only login/logout/status endpoints under `/admin`. Public content remains
@@ -296,9 +304,9 @@ deletion, and any further spam protection remain production decisions.
 - Every protected request validates the session. Admin POSTs require exact Origin
   checking shared with the public API (which retains its Origin-less client support).
   Authenticated mutations additionally require a signed, session-bound CSRF token.
-  Login now uses the shared durable MySQL five-attempt/15-minute limiter per
-  runtime client address described below; successful authentication resets its
-  subject before session issuance. The old process-memory implementation is removed.
+  Login originally used a process-memory limiter at this checkpoint. The shared
+  durable MySQL five-attempt/15-minute limiter replaced it on 24 October, resetting
+  the login subject before session issuance after successful authentication.
 - The focused admin service reuses the existing pool and parameterized queries.
   Cards list today/future dates using Europe/Amsterdam, ordered by visit date/time
   then creation time. Creation timestamps are converted from SQL epoch values and
@@ -313,19 +321,19 @@ deletion, and any further spam protection remain production decisions.
   with strict Origin validation while cross-origin referrer leakage is suppressed,
   and contain no reservation PII in metadata. Configuration/DB errors fail safely;
   logs avoid credentials, SQL and customer payloads. The application account needs
-  SELECT/INSERT and UPDATE(status); DELETE is only for explicit local test cleanup.
-- README documents setup and opt-in `npm run test:admin-integration`, which uses
+  SELECT/INSERT and UPDATE(status) on reservations; reservation-row DELETE is only
+  for explicit local test cleanup. The later limiter needs separate table grants.
+- Development and operations documents setup and opt-in `npm run test:admin-integration`, which uses
   temporary credentials only in child-process memory and exact-ID/marker cleanup.
   Existing local `.env` credentials are preserved; manual login requires setting
   a chosen password through the helper. No real admin credentials are committed.
-- Email/SMS remain absent; the owner must contact guests separately. Future
-  notifications may use Hostinger SMTP once available. Database state is authoritative;
-  future notification failure must not roll back successful writes. No SMTP package
-  or configuration has been added.
-- Production authentication, durable upstream rate limiting, HTTPS/Secure cookies,
-  canonical hosts, reverse-proxy Origin/client-IP handling, and privacy/retention
-  policy still require review before deployment. Browser acceptance remains pending
-  because no browser surface is available and Chrome creation fails in this session.
+- At this checkpoint email/SMS were absent. Internal SMTP notifications were added
+  on 23 October; guest emails and status-change notifications remain deferred.
+  Database state stays authoritative and mail failure must not roll back writes.
+- This local checkpoint did not verify production authentication, HTTPS/Secure
+  cookies, proxy/client IPs or privacy/retention operations. Durable database
+  limiting was added later; its live acceptance is still open. Browser tooling was
+  unavailable during this checkpoint; later local reviews are recorded below.
 
 Verification for this checkpoint: Astro/type checks have zero diagnostics; all
 78 native Node tests pass, including the original 65 public reservation tests and
@@ -343,12 +351,12 @@ are unchanged. Actual responsive rendering at 320/375/768/1440px, keyboard behav
 and header/gallery/form browser interactions remain unverified. An existing Astro
 development process was left running; the integration harness uses isolated built servers.
 
-## Reservation privacy and retention foundation (20 October 2026)
+## Historical checkpoint: Reservation privacy and retention foundation (20 October 2026)
 
 - Public `/privacy` describes the actual reservation fields and their use for
   request handling, contact and internal status management. The form note and
   shared public footer link to it. No consent checkbox or cookie banner is added.
-- The exact retention period remains an owner decision before production launch.
+- The exact retention period remains an unresolved owner decision for live operations.
   No automatic cleanup, scheduled deletion or cron exists. Anonymization is
   preferred over row deletion, retaining minimal reservation history.
 - Non-destructive migration 002 permits NULL name/phone and adds `anonymized_at`;
@@ -367,8 +375,9 @@ development process was left running; the integration harness uses isolated buil
   supports a separately privileged schema-maintenance connection.
 - Admin rendering suppresses all contact/message fields on marked rows and uses
   “Geanonimiseerd”; no archive, per-record cleanup or deletion UI is introduced.
-- SMTP, deployment, durable production rate limiting and a concrete production
-  retention policy remain separate work. Privacy copy must reflect actual use.
+- SMTP, deployment and durable rate limiting were separate work at this checkpoint
+  and have since been implemented. Production acceptance and a concrete retention
+  policy remain open; privacy copy must reflect actual use.
 
 Verification: migration 002 applied locally through the existing runner and a
 second run skipped both migrations. All 86 native Node tests pass, including the
@@ -380,7 +389,7 @@ created IDs and restore the starting count. Existing app grants, `.env`, unrelat
 rows and preexisting migration history remain intact. Browser verification at
 320/375/768/1440px remains pending because Chrome tooling is unavailable.
 
-## SEO and production-readiness foundation (20 October 2026)
+## Historical checkpoint: SEO and production-readiness foundation (20 October 2026)
 
 - Canonical production origin is configured once in `astro.config.mjs` as
   `https://www.turuncugouda.com`. Public canonicals/OG/schema/sitemap/robots use it,
@@ -396,16 +405,15 @@ rows and preexisting migration history remain intact. Browser verification at
   five indexable public pages only. Prerendered robots.txt references the index and
   discourages admin/API crawling. Authentication and admin private headers remain
   authoritative and unchanged. Custom public 404 returns 404, is noindex/follow, has
-  no canonical, and is excluded from sitemap. No suitable favicon export exists yet.
+  no canonical, and is excluded from sitemap. The favicon set was added on 23 October.
 - `npm run test:seo` audits generated HTML/metadata/links/images/scripts/sitemap,
   secrets and actual standalone HTTP responses, including 404/private headers.
-  README records production variables and an unchecked prelaunch checklist.
-- Nothing is deployed. Hostinger runtime/DB/maintenance credentials, migrations,
-  HTTPS/proxy/allowed-domain handling, www/apex redirect/DNS, backups and production
-  form/admin acceptance remain launch work. SMTP, durable production rate limiting,
-  analytics and automated cleanup remain unimplemented. Exact retention duration
-  and remaining menu/High Tea content still need owner decisions; browser acceptance
-  remains pending when tooling is unavailable.
+  Detailed setup and the current acceptance checklist are in Development and operations.
+- Nothing had been deployed at this 20 October checkpoint; Hostinger deployment,
+  SMTP and durable rate limiting were completed later. This was local SEO evidence,
+  not production form/admin acceptance. Analytics and automatic reservation cleanup
+  remain absent. Retention duration and remaining menu/High Tea conditions still
+  need owner decisions; current live verification gaps are listed at the top.
 
 Verification: 92 native tests pass with zero Astro/type diagnostics. Credential-free
 build/output/HTTP audits pass for six public HTML files, 70 optimized images,
@@ -416,9 +424,10 @@ cleanup; runtime credentials, privileges and privacy architecture are unchanged.
 The only new direct dependency is the sitemap integration; its npm prerequisite
 is reflected in package engines/README. Browser visual acceptance remains pending.
 
-## Pre-publication audit (22 October 2026)
+## Historical checkpoint: Pre-publication audit (22 October 2026)
 
-The repository remains private and nothing is deployed. The local audit found no
+At this 22 October checkpoint the repository was private and nothing was deployed;
+Hostinger deployment followed on 23 October. The local audit found no
 real credentials in tracked files or the available Git history, no reservation
 records or database dumps, and no secret leakage in a credential-free build.
 All 92 tests, Astro/type checks, the production build and built SEO/HTTP checks pass.
@@ -437,7 +446,7 @@ setup and operations are preserved in `docs/DEVELOPMENT.md`. Ignore rules cover
 common local exports, logs, runtime databases and credential files while retaining
 versioned migrations.
 
-## Hostinger HTTPS proxy origin handling (23 October 2026)
+## Historical checkpoint: Hostinger HTTPS proxy origin handling (23 October 2026)
 
 The application is now deployed on Hostinger as an Astro Node standalone app,
 behind TLS termination. Both `https://turuncugouda.com` and
@@ -468,7 +477,7 @@ Verification: 102 tests pass; Astro/type checks have zero diagnostics; the produ
 build and `npm run test:seo`, including the proxy HTTP regressions, pass. No database
 rows, migrations, production credentials, menu data or source assets were changed.
 
-## Reservation notification email (23 October 2026)
+## Historical checkpoint: Reservation notification email (23 October 2026)
 
 - `POST /api/reservations` awaits one internal Nodemailer notification only after
   the existing parameterized MySQL INSERT succeeds. Database state is authoritative:
@@ -504,7 +513,7 @@ has zero errors, warnings or hints. `npm run build` and `npm run test:seo` pass,
 including public-output SMTP leakage checks and the existing proxy HTTP regressions.
 No live email was sent and no database records or private environment files changed.
 
-## Site favicon (23 October 2026)
+## Historical checkpoint: Site favicon (23 October 2026)
 
 The owner-supplied transparent `src/assets/faviconturuncu.png` is retained unchanged
 as the favicon source. `npm run favicon:generate` uses the existing Sharp installation
@@ -529,7 +538,7 @@ ICO frames preserve transparency around the artwork. The visible bounding boxes
 are 14×14px on the 16px canvas and 28×28px on the 32px canvas: 87.5% of each axis
 and 76.6% of canvas area. Coverage checks reject the previous tiny-logo output.
 
-## Approved homepage visual polish (25 October 2026)
+## Historical checkpoint: Approved homepage visual polish (25 October 2026)
 
 The owner approved this variant for production after final verification.
 
@@ -576,10 +585,12 @@ The owner approved this variant for production after final verification.
   No outstanding layout regression was found. Header navigation is unchanged,
   with no Home link; its existing reservation CTA remains labelled Reserveer.
 
-## Approved durable rate limiting (24 October 2026)
+## Historical checkpoint: Approved durable rate limiting (24 October 2026)
 
-The owner approved committing/pushing the implementation after final verification.
+The owner's approval applied to this historical implementation task only.
 Phase one committed migration 003 in `74b1cc5d674546f5e041f5660c980e2cfdd04449`.
+The durable limiter implementation is on main in `611b212` and included in the
+deployed release; live quota/client-address acceptance is still pending.
 The owner reports the production table and migration-history filename/checksum
 are correct and RATE_LIMIT_SECRET is configured on Hostinger. The implementation
 does not read/change that hosting secret or execute production SQL. Migrations
@@ -633,7 +644,7 @@ rules, SMTP, authentication/session and status workflow stay unchanged.
   restarts and apex/www requests, disabling real mail and deleting exact synthetic
   hashes/reservation IDs. Existing admin/retention scripts use isolated ephemeral
   limiter secrets. `.env` is never edited. See DEVELOPMENT for full rollout order.
-- Before deployment: back up/inspect production history, apply migration 003,
+- The rollout prerequisites were: back up/inspect production history, apply migration 003,
   grant the runtime account SELECT/INSERT/UPDATE/DELETE only on rate_limits,
   configure one new server-only RATE_LIMIT_SECRET on all instances, and verify
   trusted proxy/client-address handling. Astro's adapter can use forwarding
@@ -648,7 +659,7 @@ rules, SMTP, authentication/session and status workflow stay unchanged.
   runtime/maintenance accounts. Exact synthetic rows and the temporary database
   files were removed; the existing local database, production and `.env` are unchanged.
 
-## Approved High Tea highlight (24 October 2026)
+## Historical checkpoint: Approved High Tea highlight (24 October 2026)
 
 The owner approved the temporary AI image and warm-brown design and authorized
 committing and pushing the highlight to main after final checks.
@@ -679,7 +690,7 @@ committing and pushing the highlight to main after final checks.
   previews are optimized WebPs (approximately 19–121KB). No new dependency is added.
   Review screenshots remain ignored under `.tmp/ui-review/high-tea-ai-*.png`.
 
-## Approved contact redesign (24 October 2026)
+## Historical checkpoint: Approved contact redesign (24 October 2026)
 
 The owner approved the Contact/WhatsApp redesign and authorized committing and
 pushing it to main after final checks. Hostinger deployment configuration is unchanged.
@@ -705,7 +716,7 @@ pushing it to main after final checks. Hostinger deployment configuration is unc
 - Review screenshots stay ignored under `.tmp/ui-review/contact-*.png` and
   `reservation-contact-*.png`; they are not publication assets.
 
-## Approved printed-menu redesign (24 October 2026)
+## Historical checkpoint: Approved printed-menu redesign (24 October 2026)
 
 The owner approved the menu redesign and authorized committing and pushing it to
 main after final verification. Main automatically deploys to Hostinger.
@@ -774,7 +785,7 @@ The approved homepage, gallery, business data, backend and hosting settings are 
 - Printed-versus-text business wording/prices were preserved without corrections
   in this presentation task; the owner approved publishing the presentation.
 
-## Approved homepage redesign (23 October 2026)
+## Historical checkpoint: Approved homepage redesign (23 October 2026)
 
 The owner approved the refined homepage, including the orange ticker variant,
 and authorized committing and pushing it to main after final verification.
@@ -846,22 +857,26 @@ Hostinger automatically deploys pushes to main; hosting configuration is unchang
   Better business photography remains a future refinement. No High Tea promotion
   or new business information is included.
 
-## Hosting and deployment direction
+## Hosting and deployment
 
-Use GitHub for version control. Production runs on Hostinger's Node standalone
-runtime. Database environment configuration remains private; the production delivery
-workflow, database networking/TLS and operational safeguards still require review.
-The build produces prerendered pages/assets in `dist/client/` and a standalone
-runtime in `dist/server/`; `npm start` runs its entry point. Production DB variables
-must be supplied at runtime, and migrations must run against the production
-database before submissions are enabled. Verify provider networking/TLS requirements
-before launch; no custom database TLS configuration is supplied yet. No live
-deployment, hosting integration, or CI workflow is configured by this task.
+GitHub repository `DarkGuardianMT/turuncugouda` main automatically deploys to
+Hostinger's live Node standalone runtime. The reviewed main snapshot on 27 October
+is `e4b609483fa33d5fb00e86a3549b8a2dc2e766c8`. Deployment is complete; this does
+not establish successful production reservation/admin/SMTP end-to-end behavior.
+Database grants, actual proxy client IPs, quotas, networking/TLS and recovery still
+need operational verification. Keep runtime configuration private.
+
+The configured canonical origin is `https://www.turuncugouda.com`. A previous
+apex-to-www redirect attempt caused a loop. Do not retry blindly: inspect the
+actual Hostinger/proxy redirect chain and agree a tested change before applying it.
+Relevant security headers also need review. See the
+[deployment reference](docs/DEVELOPMENT.md#deployment-and-release-operations) and
+[production acceptance checklist](docs/DEVELOPMENT.md#production-acceptance-checklist).
 
 ## Future AI chatbot
 
-A lightweight AI chatbot is a later learning/feature goal, after the core site and
-likely around or after reservation functionality. It may answer opening-hours,
+A lightweight AI chatbot is a later learning/feature goal after core production
+acceptance. It may answer opening-hours,
 location, menu and common café questions, guide visitors through reservation
 information, and eventually integrate with a reservation backend. Nothing is
 implemented or selected for it yet.
@@ -871,46 +886,15 @@ implemented or selected for it yet.
 - Vue integration, React, Tailwind, UI/component and animation libraries
 - Sanity or another CMS, Supabase, and unrelated backend/API services
 - Capacity management, guest confirmation emails and SMS notifications
-- Owner confirmation of remaining menu prices/product wording and High Tea conditions
 - AI chatbot implementation
 
-## Current implementation status
+## Historical foundation checkpoints — 7–17 October 2026
 
-Public-facing frontend v1 feature implementation is functionally complete after
-the focused polish checkpoint of 15 October 2026. Browser acceptance of this pass
-and the remaining owner content confirmations are still outstanding. Phase 2 now
-includes the verified reservation backend and connected public request form;
-the minimal local admin workflow and internal SMTP notifications are implemented.
-Guest email, CMS and chatbot remain future tasks; production SMTP acceptance and
-deployment operations remain separate work.
-
-- Official minimal Astro starter incorporated in the existing repository root.
-- Existing README identity and Git history preserved; README expanded for developers.
-- `/` contains hero, menu/highlights, Over ons, gallery preview, and verified Contact
-  information, followed by the shared footer. Empty extra-content and social-feed
-  placeholders are removed. The header is compact and mobile category photos are shorter.
-  The hero uses “Turuncu Café en Bakkerij”, the approved brand subtitle, and a real
-  börek/coffee photograph, with “Bekijk de galerij” and “Bezoek ons” CTAs.
-  Contact includes approved address, hours, phone, social links, Google Maps directions,
-  and reservation guidance. Over ons has real approved copy. The menu section is
-  a visual preview linking to the dedicated menu page.
-- `/menu` renders the supplied structured menu with grouped anchor navigation,
-  variant/supplement prices, and intentionally omitted unconfirmed prices.
-- `/galerij` has category filters, 13 captioned photos and a native accessible lightbox, a neutral
-  Dutch introduction, and the shared layout. `/reserveren` now has the public request form.
-- Reusable `src/layouts/BaseLayout.astro`, `SiteHeader`, `SiteFooter`, and `Section`
-  components, plus shared `Brand` and `PhotoGrid`, global CSS patterns, and local data.
-- Mobile-first layouts stack on small screens and use grids at wider widths.
-  Shared navigation uses native JavaScript only for the mobile disclosure, with
-  ARIA state, keyboard controls, Escape-to-close, link selection closure, and a
-  visible navigation fallback when JavaScript is disabled. A skip link and visible
-  focus styles are included.
-- Strict TypeScript configuration and npm development, check, build, and preview scripts.
-- `public/` contains the generated favicon set, copied to the build's client root.
-- `src/assets/` contains the untouched supplied logo, photographs, and menu references.
-- Root `AGENTS.md` and this document provide persistent project guidance.
-- Build output, Astro generated types, dependencies, logs, and local environment
-  files are ignored. No secrets or deployment credentials are included.
+The following setup, frontend and reservation checkpoints preserve early milestones.
+Their placeholder pages, feature deferrals, audit results and unavailable browser
+tooling describe those dates, not the current deployed application. Later local
+visual reviews are recorded above; live backend acceptance remains open in CURRENT
+STATUS. “Production preview” in these early checks refers to a local built server.
 
 ### Installed versions and initial setup verification (7 October 2026)
 
@@ -928,7 +912,7 @@ deployment operations remain separate work.
   because the sandbox cannot write to the user-level Astro configuration folder.
   This does not change the project scripts or production output.
 
-## Visual foundation verification (7 October 2026)
+## Historical checkpoint: Visual foundation verification (7 October 2026)
 
 - Astro/type checks pass without errors, warnings, or hints; static build generates three pages.
 - Browser checks cover `/`, `/galerij`, and `/reserveren` at 320, 390, 768, and
@@ -942,7 +926,7 @@ deployment operations remain separate work.
 - Real content, logo, imagery, gallery functionality, and reservation functionality
   remain for subsequent tasks.
 
-## Brand and photography checkpoint verification (8 October 2026)
+## Historical checkpoint: Brand and photography checkpoint verification (8 October 2026)
 
 - Astro/type checks: zero errors, warnings, or hints; build produces three static pages.
 - Production browser checks at 320, 375, 768, 1024, and 1440px verify all routes,
@@ -953,7 +937,7 @@ deployment operations remain separate work.
 - Menu reference images and the unused letterboxed photo are absent from the build.
 - No dependencies added; responsive outputs keep original source files intact.
 
-## Verified business content checkpoint (8 October 2026)
+## Historical checkpoint: Verified business content checkpoint (8 October 2026)
 
 - Astro/type checks pass with zero errors, warnings, or hints; static build succeeds.
 - Production browser checks cover all three routes at 320, 375, 768, 1024, and 1440px,
@@ -966,7 +950,7 @@ deployment operations remain separate work.
 - Source-asset hashes remain unchanged. No dependencies added; online booking and
   final menu extraction remain deferred.
 
-## Gallery lightbox checkpoint (14 October 2026)
+## Historical checkpoint: Gallery lightbox checkpoint (14 October 2026)
 
 - Astro/type checks pass without errors, warnings, or hints; production build
   generates all three static routes.
@@ -982,7 +966,7 @@ deployment operations remain separate work.
   375px, tablet and desktop rendering, crops, overflow, native keyboard activation,
   Escape, focus containment and page scroll behavior require a browser check.
 
-## Digital menu checkpoint (14 October 2026)
+## Historical checkpoint: Digital menu checkpoint (14 October 2026)
 
 - Astro/type checks pass with zero diagnostics; the static build generates four pages.
 - HTTP checks pass for all four routes. Generated output checks cover all 91 menu
@@ -994,7 +978,7 @@ deployment operations remain separate work.
   actual anchor clearance and overflow remain pending: no browser surfaces were
   exposed, and opening Chrome returned unavailable.
 
-## Reservation foundation verification (17 October 2026)
+## Historical checkpoint: Reservation foundation verification (17 October 2026)
 
 - Dependencies: `@astrojs/node` 11.1.8 (Astro 7-compatible) and `mysql2` 3.24.6;
   Astro remains 7.3.6. Installation audit reports no vulnerabilities.
@@ -1021,7 +1005,7 @@ deployment operations remain separate work.
 - No production deployment, public form connection, admin, authentication, email,
   or chatbot implementation is included.
 
-## Public reservation form verification (17 October 2026)
+## Historical checkpoint: Public reservation form verification (17 October 2026)
 
 - No dependencies added. Astro/type checks pass without diagnostics; all 65 native
   Node tests pass, retaining the original 40 validation/configuration tests.
@@ -1050,24 +1034,38 @@ deployment operations remain separate work.
   chatbot, CMS, or deployment is included. Production rate limiting, host/HTTPS
   proxy verification, and privacy/retention policy remain launch requirements.
 
-## Near-term roadmap
+## Prioritized backlog — 27 October 2026
 
-1. Confirm remaining Smoothies/Softies prices, product wording, High Tea conditions,
-   and any additional business content with the owner.
-2. Refine homepage sections, anchor navigation, and responsive design direction.
-3. Refine the homepage, digital menu, and gallery incrementally using local data.
-4. Confirm Hostinger capabilities and establish the GitHub deployment workflow.
-5. Verify the public form in a browser, confirm reservation operations with the
-   owner, and add production rate limiting and privacy safeguards before launch.
+Order reflects production acceptance and operational risk before optional features.
+Detailed procedures and verification status live in Development and operations.
+
+| ID | Next action |
+| --- | --- |
+| A01 | Complete authorized live reservation → pending DB row → admin login/status update → internal SMTP/inbox verification. |
+| A02 | Verify actual proxy `clientAddress`, untrusted-header handling and persistent/shared rate-limit behavior, including runtime grants and migration 003. |
+| A03 | Recheck and remediate the dependency audit: undici/zod High and fast-uri Moderate were reported on 27 October; do not assume current or resolved findings. |
+| A04 | Verify backups and a restore into an isolated test database, never over production or unrelated data. |
+| A05 | Obtain owner-approved retention duration, privacy wording and manual maintenance workflow, including mailbox copies. |
+| A06 | Obtain owner confirmation of remaining menu prices/product wording, High Tea rules and reservation policy/capacity expectations. |
+| A07 | Maintain consistency across project guidance and operations docs; add minimal CI for existing checks when agreed. No CI workflow is currently configured. |
+| A08 | Add a past-reservations admin view if required; the current view covers today/future only. |
+| A09 | Improve public 429/503 guidance and operational SMTP failure visibility; preserve successful pending records on mail failure. |
+| A10 | Review apex/www canonical redirect and relevant security headers. The previous redirect attempt looped; inspect real hosting/proxy behavior before changing it. |
+| A11 | Consider optional customer confirmation/cancellation emails with agreed wording and delivery policy. |
+| A12 | Replace temporary photography with authentic assets where appropriate; complete accessibility and performance checks. Prior local visual checks do not replace full live acceptance. |
+| A13 | Consider optional chatbot, CMS and capacity features only after agreed requirements. |
 
 ## Important unresolved decisions
 
-- Final homepage sections and the fate of existing promotional sections
-- Remaining menu prices/product wording, High Tea conditions, and any future email contact
-- Final design tokens, gallery organization, and any additional high-resolution photo assets
-- Hostinger plan, GitHub deployment integration, and future server capabilities
-- Reservation operations/capacity, public-form launch safeguards, retention policy,
-  admin workflow, and notification requirements
+- Owner confirmation of remaining prices/product wording and High Tea conditions;
+  the published minimum-party/48-hour copy does not imply backend enforcement.
+- Reservation handling/contact policy, capacity expectations, retention duration,
+  privacy wording, mailbox maintenance and backup/recovery ownership.
+- Tested canonical redirect behavior and relevant production security headers.
+- Better photography and future design refinements; gallery and homepage structure
+  are implemented, not awaiting an initial architecture decision.
 
-Update this document whenever significant architecture, scope, feature, or status
-decisions change.
+Update this document when significant architecture, feature, scope, business or
+status decisions change. Update [Development and operations](docs/DEVELOPMENT.md)
+for technical behavior, APIs, migrations, commands, deployment and operations;
+correct related stale sections rather than only appending new notes.

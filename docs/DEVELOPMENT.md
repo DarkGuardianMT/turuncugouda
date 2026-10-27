@@ -1,8 +1,30 @@
 # Development and operations
 
-Local setup, API behavior, security boundaries, maintenance and future deployment
-requirements. Start with the [project overview](../README.md). Production runs on
-Hostinger behind an HTTPS reverse proxy; the acceptance checklist remains relevant.
+Detailed local setup, API behavior, security boundaries, maintenance and deployment
+operations. Start with the [project overview](../README.md) and
+[current project status](../PROJECT_CONTEXT.md#current-status--27-october-2026).
+Production is live on Hostinger behind an HTTPS reverse proxy; GitHub `main`
+auto-deploys. NEVER commit or push without explicit user approval. Implement and
+verify locally, report changes, and stop for approval as required by
+[agent guidance](../AGENTS.md#git-workflow).
+
+## Verification baseline — 27 October 2026
+
+The audit reviewed main commit `e4b609483fa33d5fb00e86a3549b8a2dc2e766c8`.
+These are recorded results, not checks repeated by this documentation cleanup:
+
+| Evidence | Scope and limits |
+| --- | --- |
+| Local automated checks | 168/168 native Node tests, zero Astro diagnostics, build and SEO checks passed. |
+| Prior local DB integrations | Reservation creation/pending storage, admin sessions/CSRF/status changes, manual anonymization and durable quotas across pools/processes/restarts passed in isolated local tests. These do not prove production behavior. |
+| Live public/SEO checks | All five public pages returned 200; public content and SEO endpoints were checked. Unauthenticated `/admin/reservations` redirected to login. |
+| Live backend acceptance | Still pending: successful reservation POST, authenticated admin session/update, SMTP acceptance/inbox delivery, actual DB grants, real proxy client IPs, production quota probe and isolated production-backup restore. Live checks were GET-only plus harmless UI interactions. |
+| Owner-reported prerequisites | Migration 003 table/history and Hostinger `RATE_LIMIT_SECRET` were reported ready; runtime grants, secret validity and actual limiter behavior were not independently verified. |
+| Dependency audit | undici and zod High, fast-uri Moderate were reported on 27 October (three affected packages). Re-run `npm audit` against the current lockfile before claiming current exposure or remediation; review changes and run relevant checks rather than applying a forced upgrade blindly. |
+
+The release is deployed; end-to-end production acceptance is open. Use the
+[categorized acceptance checklist](#production-acceptance-checklist) to record
+new evidence without treating deployment or a login-page GET as backend verification.
 
 ## Local reservation backend setup
 
@@ -72,7 +94,7 @@ Back up production before future schema changes. No automatic rollback is offere
   "name": "Example Name",
   "phone": "+31612345678",
   "email": "example@example.com",
-  "reservationDate": "2026-10-20",
+  "reservationDate": "2026-10-31",
   "reservationTime": "13:30",
   "guestCount": 4,
   "message": "Optional message"
@@ -135,8 +157,8 @@ are reset, the summary contains only date/time/party size, and no database ID is
 displayed. Requests remain pending until Turuncu confirms them. No automatic
 confirmation or email is sent to the guest. The separate admin workflow is described
 below. Without JavaScript the form stays disabled to prevent accidental non-JSON
-submission; phone, Instagram,
-and Contact remain usable. A concise purpose-of-use note is shown near Submit.
+submission; WhatsApp and phone remain available as contact alternatives.
+A concise purpose-of-use note is shown near Submit.
 
 Astro's `security.allowedDomains` permits exactly `turuncugouda.com` and
 `www.turuncugouda.com`, using HTTPS. `security.checkOrigin` stays enabled.
@@ -155,13 +177,14 @@ Hostinger must overwrite client-supplied forwarding headers, provide
 nondefault ports and comma-separated header chains even if Astro would ignore them.
 Missing external scheme/host information fails closed; it is not guessed from Origin.
 Keep the Node origin inaccessible outside the trusted proxy and verify live HTTPS
-login, requests and trusted client IPs after deployment. No CORS permission or
+login, requests and trusted client IPs for production acceptance. No CORS permission or
 custom proxy-header parsing is introduced. See Astro's
 [proxy/security configuration](https://docs.astro.build/en/reference/configuration-reference/#securityalloweddomains).
 
-Durable MySQL limiting is implemented below and approved for production after
-final verification. CAPTCHA is not included. Assess additional spam
-protection if needed and define privacy/retention/deletion policy. Guest email,
+Durable MySQL limiting is implemented and included in the deployed release;
+real proxy/client-address and quota acceptance remains pending. CAPTCHA is not
+included. Assess additional spam protection if needed and define
+privacy/retention/deletion policy. Guest email,
 chatbot and capacity management remain deferred.
 
 ## Durable rate limiting
@@ -195,8 +218,8 @@ normalized to IPv4. Unavailable/invalid addresses (including getter errors, head
 chains, ports and zone identifiers) fail closed. There is no shared anonymous key.
 **Astro's adapter may itself use forwarding headers for a trusted host.** Hostinger
 must overwrite untrusted forwarding headers and prevent direct public access to
-the Node origin; verify actual runtime client addresses before rollout. No proxy
-or Hostinger configuration is changed here.
+the Node origin; actual runtime client-address verification is still pending.
+The application supplies no Hostinger proxy configuration.
 
 The stored subject is hexadecimal `HMAC-SHA-256(secret, normalizedAddress)` using
 Node crypto; raw IPs never reach SQL. Scope/hash, current window/count and update
@@ -286,12 +309,20 @@ Runtime credentials need the permissions below before running. Do not run agains
 production or alongside unrelated writers. Existing admin/retention integration
 scripts use independent ephemeral limiter secrets and remove their own keys.
 
-**Do not push this change to main before the production prerequisites are ready:**
-Hostinger auto-deploys main. After owner approval:
+Migration 003 was published in `74b1cc5`; the limiter implementation followed in
+`611b212` and is included in the deployed main snapshot. The owner reported the
+production table/history and `RATE_LIMIT_SECRET` ready. That is not verification
+of production runtime grants, client addresses or quota behavior. Prior integration
+verification used only an isolated loopback database and did not inspect/change
+the hosting secret or execute production SQL.
+
+For a new environment or future release, preserve this dependency order. Do not
+reapply or manually mark existing migrations without inspecting history. Main
+auto-deploys; every commit/push still requires explicit user approval:
 
 1. Back up the intended production database and verify existing migration history.
-2. Apply the reviewed migration 003 with the existing `npm run db:migrate --
-   --maintenance` runner in a controlled shell explicitly configured for the
+2. Apply the reviewed migration 003, if outstanding, with
+   `npm run db:migrate -- --maintenance` in a controlled shell configured for the
    intended database/maintenance account. It records the normalized SHA-256
    checksum in `schema_migrations`; never edit/replace migrations 001/002 or
    manually mark an unverified migration applied. Inspect schema/history on
@@ -305,21 +336,20 @@ Hostinger auto-deploys main. After owner approval:
      TO 'your_runtime_user'@'your_runtime_host';
    ```
 
-4. Add the new `RATE_LIMIT_SECRET` server variable on Hostinger and every instance,
+4. Configure `RATE_LIMIT_SECRET` on Hostinger and every instance,
    with the same private generated value. Existing DB/admin/SMTP vars stay as-is.
-   The new table/setting are compatible with the currently deployed old code.
-5. Only after schema, grants, secret and proxy/client-address readiness are
-   confirmed, authorize commit/push to main and allow the normal deployment.
+   For future additions, establish schema/settings before dependent code deploys.
+5. Only after prerequisites and local verification are complete, report the
+   release and stop for explicit user approval before committing or pushing main.
+   A push triggers the normal Hostinger deployment.
 6. Verify runtime health, reservation 201/429/Retry-After, admin login/reset and
    actual trusted client-address behavior over live HTTPS. Missing prerequisites
    intentionally produce 503; static content continues working.
 
-The rollout is approved after final verification. Phase one published migration
-003 separately; the owner reports the production table/history and Hostinger
-RATE_LIMIT_SECRET are ready. Verification runs only against a loopback test
-database, without reading/changing the hosting secret or executing production SQL.
-Future deployments still need the schema, runtime grants and shared secret in
-place before an auto-deploying push.
+Step 6 remains open for the deployed release. Production testing needs an
+explicitly authorized synthetic test and reviewed cleanup, not a replay of the
+local integration scripts against production. Future deployments still need the
+schema, runtime grants and shared secret ready before an auto-deploying push.
 
 ## Local reservation admin setup
 
@@ -343,7 +373,10 @@ local `.env` configuration or the hosting environment, never `PUBLIC_` variables
    `UPDATE (status)` on `reservations`. A local database administrator can grant
    the latter using the existing account's exact user/host; no schema migration
    or database reset is needed. DELETE is only needed for integration-test cleanup,
-   never by the admin application. Keep migration privileges separate in production.
+   never for reservation rows by the admin application. The shared limiter also
+   requires `RATE_LIMIT_SECRET` and SELECT/INSERT/UPDATE/DELETE on `rate_limits`;
+   see [durable rate limiting](#durable-rate-limiting). Keep migration privileges
+   separate in production.
 5. Run `npm run dev` and open `http://localhost:4321/admin/login`.
 
 `/admin/reservations` lists today and future reservations using the Amsterdam
@@ -372,7 +405,7 @@ require a cryptographically authenticated, session-bound CSRF token. Login uses
 same-origin enforcement and generic errors. The shared MySQL limiter allows five
 attempts per runtime client address per 15 minutes and resets after successful
 login; see [durable rate limiting](#durable-rate-limiting). Trusted-proxy/IP handling
-must be verified before deployment, including stripping untrusted forwarded
+remains pending for production acceptance, including stripping untrusted forwarded
 headers and preventing direct access to the origin.
 
 Admin responses use `Cache-Control: no-store`, `X-Robots-Tag: noindex, nofollow`,
@@ -403,7 +436,7 @@ For manual login, set your own hash using the interactive helper above.
 
 Production acceptance still requires verifying HTTPS/proxy Origin reconstruction,
 Secure cookies, trusted client IPs, authentication hardening
-and activation of the durable MySQL limiter before deployment. Privacy/retention/deletion rules
+and actual durable MySQL limiter behavior in the deployed release. Privacy/retention/deletion rules
 remain unresolved. New public requests trigger the internal SMTP notification below;
 admin status updates send no mail. The administrator still contacts guests separately.
 
@@ -464,7 +497,7 @@ them locally; configured production SMTP would also receive their synthetic requ
 
 `/privacy` describes reservation-data collection and use in Dutch and is linked
 from the reservation form and public footer. The exact retention period still
-requires owner approval before production launch. No automatic cleanup, cron,
+requires owner approval for live operations. No automatic cleanup, cron,
 cookie banner, or retention notifications are added.
 
 Migration `002_allow_reservation_anonymization.sql` makes `name` and `phone`
@@ -520,26 +553,69 @@ idempotence, date protection, anonymized admin cards and public privacy links, t
 removes only its exact test IDs. Use a local database without concurrent writers.
 Do not run this test against production.
 
-## Deployment direction
+## Backup and isolated restore verification
 
-Production direction is Hostinger **Node hosting/runtime plus Hostinger MySQL**.
-A static-only or PHP/Apache-only plan cannot run this API. Confirm the actual
-plan, supported Node version, runtime start command (`npm start`), network access
-and database TLS requirements, and GitHub delivery workflow before deployment.
-No hosting connection, deployment, or CI workflow is configured here.
+Backup availability and recovery are not verified by the public-site checks or
+local integration tests. Before schema changes or production anonymization, obtain
+an authorized backup of the intended database and confirm the actual provider's
+backup/export procedure, access controls and recovery options. Keep dumps out of
+Git and documentation; they may contain personal data. Record only safe operational
+metadata, not credentials, records or dump contents.
 
-Build with `npm run build`; deploy both `dist/client/` and `dist/server/` plus
-the runtime dependencies. Configure production `DB_*` variables in hosting, using
-the supplied database hostname and credentials rather than localhost assumptions.
-For an external database connection, confirm the provider's private-network/TLS
-setup before enabling traffic; this initial configuration does not specify custom
-TLS certificates. Run `npm run db:migrate` with production migration credentials
-and the repository's migration files **before enabling reservation submissions**.
-Public content remains prerendered using `output: 'static'`; the API and admin
-pages/actions opt out with `prerender = false`, following Astro's
+1. Review the intended source database and backup scope, including schema,
+   reservations and `schema_migrations`; check that the backup completed.
+2. Prepare a separate, isolated test database/account with no access to production
+   or unrelated databases. Confirm the restore target explicitly before importing.
+   Use a provider-reviewed procedure; do not invent Hostinger restore commands or
+   assume a production backup can safely be imported with unchanged database names.
+3. Restore only into that isolated database. Check schema, migration history and
+   aggregate row counts without logging customer data. Use the restored migration
+   history to determine any outstanding migrations; do not edit applied files or
+   reset tables to make checks pass.
+4. If exercising a built server, use isolated DB credentials, fresh test admin and
+   limiter secrets, and disabled SMTP or an isolated test inbox. Prevent public
+   access. Do not run integration scripts that insert/delete records on the backup
+   copy without separately reviewing their isolation requirements.
+5. Record the date, reviewed backup scope and recovery outcome. Clean up the
+   isolated copy under the approved maintenance policy. Do not overwrite production
+   as a restore test. Restoring/anonymizing real production data remains a separate,
+   explicitly reviewed operation; no restore was performed during the audit.
+
+## Deployment and release operations
+
+Production already runs on Hostinger **Node standalone hosting plus Hostinger
+MySQL**, behind HTTPS termination. GitHub `main` automatically deploys to
+`https://www.turuncugouda.com/`. The reviewed main snapshot is
+`e4b609483fa33d5fb00e86a3549b8a2dc2e766c8` on 27 October 2026. There is no
+repository CI workflow currently configured. A working public deployment does not
+verify database grants, successful admin sessions, SMTP delivery or proxy client IPs.
+
+For future releases, implement and verify locally, review the diff and dependencies,
+and report the concrete change before requesting explicit commit/push approval.
+Do not treat historical approval for a prior release as permission for another push.
+Check migration/runtime prerequisites before allowing the auto-deploying push.
+
+Build with `npm run build`; the artifact contains `dist/client/` and
+`dist/server/` and needs runtime dependencies. `npm start` runs the standalone
+entry point. Package engines require Node >=22.12.0 and npm >=10.8.2; Node 24 was
+used for prior local verification. Confirm the actual Hostinger runtime/start
+settings rather than assuming them from a successful static-page response.
+
+Configure production `DB_*`, admin, SMTP and limiter variables privately in the
+server process environment. Verify the provider's actual database hostname,
+networking/TLS and least-privilege grants; this repository supplies no custom DB TLS
+certificates. Back up before schema changes, inspect existing history and apply
+only outstanding reviewed migrations with the appropriate migration credentials
+before code depends on them. Migration 003/history and the limiter secret are
+owner-reported ready; runtime grants and behavior still require live verification.
+
+Public content stays prerendered with `output: 'static'`; API/admin routes use
+`prerender = false`, following Astro's
 [on-demand rendering model](https://docs.astro.build/en/guides/on-demand-rendering/)
 and [official Node adapter](https://docs.astro.build/en/guides/integrations-guide/node/).
-Customer data never enters static output.
+Customer data never enters static output. After an approved release, distinguish
+public GET/SEO checks from the authorized reservation/admin/SMTP and quota
+acceptance checks below. Never run local-only integration scripts against production.
 
 ## SEO and production environment
 
@@ -592,37 +668,85 @@ a local `.env` file:
 | Database | `DB_CONNECTION_LIMIT` | Optional pool bound, default 5; review against hosting limits |
 | SMTP | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, `RESERVATION_NOTIFICATION_TO` | Required for internal reservation alerts; use the Hostinger values above and supply the password privately |
 | Admin | `ADMIN_USERNAME`, `ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_SECRET` | Required for one admin; generate a production scrypt hash and fresh strong session secret, never reuse the temporary local credential |
-| Rate limiting | `RATE_LIMIT_SECRET` | New required server-only random base64url secret, at least 32 random bytes; identical across all instances; deploy migration 003 and runtime table privileges first |
+| Rate limiting | `RATE_LIMIT_SECRET` | Required server-only random base64url secret, at least 32 random bytes; identical across all instances; migration 003 and runtime table privileges are prerequisites |
 | Maintenance | `MAINTENANCE_DB_USER`, `MAINTENANCE_DB_PASSWORD` | Required only for explicit cleanup or `db:migrate -- --maintenance`; use separate credentials with appropriate operation-specific privileges |
 
-Hostinger-specific runtime/start settings, database credentials/networking/TLS,
-maintenance access and external URL reconstruction must be verified on Hostinger.
-The two approved HTTPS hosts are configured in `security.allowedDomains`; verify real
-HTTPS Origin/client-IP handling through the trusted proxy. Do not trust arbitrary
-forwarded headers. Production must consistently redirect the noncanonical domain
-variant, likely apex to www; the decision and actual Hostinger redirect syntax remain
-pending. No DNS, redirect or hosting configuration is supplied here.
+The runtime is deployed, but its actual start settings, database networking/TLS,
+maintenance access and external URL reconstruction still need operational review.
+The two approved HTTPS hosts are configured in `security.allowedDomains`; real
+HTTPS Origin/client-IP handling through the trusted proxy remains unverified.
+Do not trust arbitrary forwarded headers.
 
-## Production prelaunch checklist
+The preferred canonical origin is www. **A previous apex-to-www redirect attempt
+caused a loop.** Do not blindly repeat it or infer provider redirect syntax from
+canonical metadata. Inspect the real apex/www HTTP/HTTPS chain, TLS termination
+and existing Hostinger rules before proposing an approved, tested redirect change.
+Relevant security headers also need review against current public/admin behavior.
+This reference supplies no new DNS, redirect, header or hosting configuration.
 
-All items below remain unverified launch requirements:
+## Production acceptance checklist
 
-- [ ] Owner confirms remaining menu prices/product wording and High Tea details.
-- [ ] Owner approves a concrete reservation retention duration and reviews privacy copy.
-- [ ] Hostinger Node runtime and start configuration are confirmed; production MySQL exists.
-- [ ] Production DB/admin environment values and any separate maintenance credentials are configured securely.
-- [ ] Database networking/TLS, least privileges, backups and recovery procedure are reviewed.
-- [ ] Versioned migrations are applied with the appropriate credentials before accepting requests.
-- [ ] HTTPS works; www/apex canonical and redirect decisions are implemented consistently in hosting.
-- [ ] External host/scheme, allowed domains, Origin checks and trusted client-IP handling are verified behind the real proxy.
-- [ ] Public reservation requests are tested in production and remain pending until Turuncu confirms.
-- [ ] Admin login, Secure cookies, CSRF, status actions and logout are tested over HTTPS.
-- [ ] Deploy migration 003, runtime table grants and shared RATE_LIMIT_SECRET before enabling the durable reservation/admin limiter; verify trusted client addresses and shared quotas.
-- [ ] Mobile/desktop browser acceptance is completed for navigation, gallery, form, privacy and 404.
-- [ ] Sitemap, robots.txt, canonical/social image URLs and structured data are checked on the deployed domain.
-- [ ] Production SMTP environment values are configured and a new request's internal email is received in Gmail; failed delivery still preserves HTTP 201 and the pending record.
+Status below uses the 27 October audit and prior recorded evidence. Checked items
+mean only the stated scope was confirmed. Update with dated evidence when further
+verification is performed; deployment alone is not backend acceptance.
 
-Production SMTP acceptance and post-deployment limiter acceptance require
-operational verification. Automatic reservation retention still
-requires owner approval; no cron is configured. Limiter-state cleanup is
-opportunistic and separate from reservation retention.
+### Confirmed within scope
+
+- [x] Hostinger Node deployment is live; GitHub main auto-deploys to production.
+- [x] The reviewed main commit is `e4b609483fa33d5fb00e86a3549b8a2dc2e766c8`.
+- [x] Recorded local checks passed: 168/168 tests, zero Astro diagnostics, build and SEO checks.
+- [x] Prior isolated local DB integrations covered reservation/admin/CSRF/status,
+  anonymization and durable quotas, concurrency and restart persistence.
+- [x] Live GET checks returned 200 for all five public pages; public content and
+  SEO endpoints were checked, including sitemap/robots and canonical metadata.
+- [x] Unauthenticated live admin reservations redirected to login. This proves no
+  successful admin session, cookie or mutation behavior.
+- [x] Durable limiter code and migration 003 are present in main. Production
+  table/history and limiter secret readiness are owner-reported only.
+
+### Pending technical and operational verification
+
+- [ ] A01: With explicit authorization, send a synthetic live reservation; verify
+  HTTP 201 and the corresponding stored `pending` row without exposing customer data.
+- [ ] A01: Verify successful HTTPS admin login, Secure cookies, session/CSRF/Origin
+  protection, stale-update refusal, valid status actions and logout. Admin status
+  changes send no guest email; test guest contact separately under the agreed policy.
+- [ ] A01/A09: Verify production SMTP configuration, provider acceptance and receipt
+  in the intended inbox. Review safe failure visibility and that failed notification
+  preserves the pending row/HTTP 201; current automated evidence for this is local.
+- [ ] A02: Verify actual production DB connectivity/networking/TLS, migration history
+  including 003, runtime table grants, and shared valid `RATE_LIMIT_SECRET`, without
+  publishing secrets or broadening unrelated permissions.
+- [ ] A02: Verify real runtime `clientAddress`, overwritten untrusted forwarding
+  headers and private Node origin access. Confirm shared production quotas,
+  429/Retry-After, admin limiter/reset and fail-closed behavior in a controlled test;
+  no real production quota probe was performed by the audit.
+- [ ] A03: Recheck/remediate dependency findings recorded on 27 October: undici/zod
+  High and fast-uri Moderate. Date fresh results and verify compatible upgrades.
+- [ ] A04: Review production backup access/completion and verify restore into an
+  isolated test database using the procedure above. No production restore is verified.
+- [ ] A07: Keep guidance/status/operations docs consistent and agree minimal CI
+  using existing checks; a CI workflow is not currently implemented.
+- [ ] A09: Improve specific 429/503 user guidance and safe SMTP failure visibility.
+- [ ] A10: Review apex/www canonical redirects and relevant security headers after
+  inspecting the actual proxy/hosting chain; the previous redirect attempt looped.
+- [ ] A12: Complete live mobile/desktop accessibility and performance acceptance
+  across navigation, gallery/menu dialogs, reservation, privacy and 404. Prior
+  local responsive/keyboard reviews do not prove complete live acceptance.
+
+### Owner-dependent decisions and optional scope
+
+- [ ] A05: Approve retention duration, privacy wording, mailbox-copy handling,
+  maintenance ownership and reviewed manual cutoff/dry-run/apply workflow. Automatic
+  reservation retention needs separate approval; no cron is configured. Limiter
+  cleanup is opportunistic and separate from reservation-data retention.
+- [ ] A06: Confirm remaining menu prices/product wording, High Tea minimum-party/
+  48-hour conditions and reservation policy/capacity expectations. Published High Tea
+  copy is not enforced by reservation validation; do not invent a policy or prices.
+- [ ] A08/A11: Agree whether to add past reservations in admin and optional guest
+  confirmation/cancellation emails; current admin lists today/future only.
+- [ ] A12/A13: Obtain authentic replacement photography where appropriate; agree
+  chatbot/CMS/capacity scope before implementation.
+
+No retention period, new hosting configuration or business policy is established by
+this checklist. Record live verification separately from local tests and owner reports.

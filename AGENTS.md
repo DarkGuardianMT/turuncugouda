@@ -6,19 +6,22 @@
 - Preserve established conventions unless there is a good reason to change them.
 - Prefer simple solutions over unnecessary abstraction. Keep components small and focused.
 - Add dependencies only with a clear benefit. Do not introduce frameworks or services for speculative future use.
-- Avoid premature backend, database, or CMS work.
+- Extend the existing reservation backend only for agreed requirements; avoid speculative backend, database, or CMS work.
 - Maintain accessibility, mobile responsiveness, performance, and SEO. Use semantic HTML.
 - Keep TypeScript strict and avoid unnecessary `any`.
 - Never expose secrets or commit `.env` files or local environment variants.
 - Separate business content/data from presentation when practical.
-- Update `PROJECT_CONTEXT.md` when significant architecture, scope, feature, or project-status decisions change.
+- Update `PROJECT_CONTEXT.md` when significant architecture, feature, scope, business, or project-status decisions change.
+- Update `docs/DEVELOPMENT.md` when technical behavior, APIs, migration procedures, commands, deployment, or operational processes change.
+- Trivial visual edits do not require documentation changes unless they affect established decisions.
+- When updating documentation, correct outdated information in related sections rather than only appending new text. Keep current status distinct from historical checkpoints and local tests distinct from production verification.
 
 ## Astro
 
 - Prefer Astro components for static and content-oriented UI and static rendering where possible.
 - Add client-side JavaScript only when interaction requires it.
 - Do not add Vue until a feature genuinely benefits from it. If added, use focused interactive islands rather than automatically rewriting the site as a client-side SPA.
-- Keep future `/galerij` and `/reserveren` requirements in mind without implementing them prematurely.
+- Preserve the implemented `/galerij` and `/reserveren` flows; add further gallery or reservation features only when required.
 
 ## Reservation backend
 
@@ -60,9 +63,13 @@ Before considering a coding task complete:
 - Inspect `git diff` and `git status`, including new files.
 - Ensure generated output, caches, secrets, and unrelated files are excluded.
 
+For documentation-only changes, validate relative Markdown links and run
+`git diff --check`, `git diff`, and `git status`. No npm tests, Astro checks, or
+build are required when application code and configuration are unchanged.
+
 ## Git workflow
 
-- Work in meaningful checkpoints; do not commit every tiny edit.
-- At the end of a clearly scoped completed task, commit and push without additional confirmation unless there is a safety or problem reason not to.
-- Use concise English conventional-style messages, such as `chore: initialize Astro project`, `feat: add gallery page`, `fix: correct mobile navigation`, or `docs: update project context`.
+- NEVER commit or push without explicit user approval. Hostinger automatically deploys `main` to production. Implement and verify locally, report the changes, and stop for approval.
+- Work in meaningful checkpoints; approval for an earlier task does not authorize a later commit or push.
+- When explicitly approved, use concise English conventional-style messages, such as `feat: add gallery page`, `fix: correct mobile navigation`, or `docs: update project context`.
 - Do not rewrite Git history or force-push unless explicitly instructed.
