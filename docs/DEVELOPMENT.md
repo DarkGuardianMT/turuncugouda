@@ -2,7 +2,7 @@
 
 Detailed local setup, API behavior, security boundaries, maintenance and deployment
 operations. Start with the [project overview](../README.md) and
-[current project status](../PROJECT_CONTEXT.md#current-status--27-october-2026).
+[current project status](../PROJECT_CONTEXT.md#current-status--29-october-2026).
 Production is live on Hostinger behind an HTTPS reverse proxy; GitHub `main`
 auto-deploys. NEVER commit or push without explicit user approval. Implement and
 verify locally, report changes, and stop for approval as required by
@@ -183,8 +183,8 @@ custom proxy-header parsing is introduced. See Astro's
 
 Durable MySQL limiting is implemented and included in the deployed release;
 real proxy/client-address and quota acceptance remains pending. CAPTCHA is not
-included. Assess additional spam protection if needed and define
-privacy/retention/deletion policy. Guest email,
+included. Assess additional spam protection if needed and follow the
+[approved manual retention policy](#reservation-privacy-and-manual-retention-maintenance). Guest email,
 chatbot and capacity management remain deferred.
 
 ## Durable rate limiting
@@ -436,8 +436,8 @@ For manual login, set your own hash using the interactive helper above.
 
 Production acceptance still requires verifying HTTPS/proxy Origin reconstruction,
 Secure cookies, trusted client IPs, authentication hardening
-and actual durable MySQL limiter behavior in the deployed release. Privacy/retention/deletion rules
-remain unresolved. New public requests trigger the internal SMTP notification below;
+and actual durable MySQL limiter behavior in the deployed release. Reservation retention
+follows the approved manual policy below. New public requests trigger the internal SMTP notification below;
 admin status updates send no mail. The administrator still contacts guests separately.
 
 ## Reservation notification email
@@ -496,9 +496,12 @@ them locally; configured production SMTP would also receive their synthetic requ
 ## Reservation privacy and manual retention maintenance
 
 `/privacy` describes reservation-data collection and use in Dutch and is linked
-from the reservation form and public footer. The exact retention period still
-requires owner approval for live operations. No automatic cleanup, cron,
-cookie banner, or retention notifications are added.
+from the reservation form and public footer. For A05 (29 October 2026), the owner
+approved retaining personal reservation data for **90 days after the reservation
+date**. Name, phone, email and message are then anonymized; non-personal reservation
+information may remain for statistics. A legal obligation or unresolved dispute
+may require retaining the necessary data longer. Cleanup remains manual; no cron,
+automatic reservation cleanup, cookie banner or retention notifications are added.
 
 Migration `002_allow_reservation_anonymization.sql` makes `name` and `phone`
 nullable and adds nullable `anonymized_at`. Public requests still require name and
@@ -532,16 +535,64 @@ npm run reservations:cleanup -- --before=YYYY-MM-DD --apply
 Replace `YYYY-MM-DD` with an explicitly reviewed cutoff. It is exclusive: only
 visits before it are eligible, in any reservation status. Today and future visits
 are always protected using Europe/Amsterdam, and future cutoffs are rejected.
-Today's date is allowed as an exclusive bound. There is no default age or period.
+Today's date is allowed as an exclusive bound. The CLI has no default age or period;
+the operator must calculate the approved 90-day cutoff as described below.
 Without `--apply` the command only counts; with it, one parameterized UPDATE clears
 the personal fields of matching, not-yet-anonymized rows. Output contains only mode,
 cutoff and count. Repeating it does not rewrite marked rows.
 
-Use this mechanism only after an owner-approved retention decision or a specifically
-reviewed maintenance need. Anonymization cannot be undone without a backup. Never
-apply against production without backup and review of the dry-run count/cutoff and
-the intended database. No row deletion, schema/migration-history modification,
+The retention decision does not authorize a production cleanup run. Anonymization
+cannot be undone without a backup. Never apply against production without a backup,
+review of the dry-run count/cutoff and intended database, and **separate explicit
+approval for that production apply**. No row deletion, schema/migration-history modification,
 AUTO_INCREMENT reset or automatic schedule is performed by cleanup.
+
+### Monthly manual procedure (A05)
+
+1. The designated operator reviews retention once a month. From the repository root,
+   calculate **90 calendar days before today's Europe/Amsterdam date**, independent
+   of the shell's timezone. This calculation does not connect to a database:
+
+   ```powershell
+   $retentionCutoff = node --experimental-strip-types --input-type=module -e "import { todayInAmsterdam } from './src/lib/reservationDate.ts'; const date = new Date(todayInAmsterdam() + 'T12:00:00Z'); date.setUTCDate(date.getUTCDate() - 90); console.log(date.toISOString().slice(0, 10));"
+   $retentionCutoff
+   ```
+
+   For example, 29 October 2026 gives `2026-07-31`. The cutoff is exclusive:
+   reservations **before** 31 July qualify; 31 July itself stays untouched on that
+   run. Monthly manual execution can leave eligible data until the next reviewed
+   run; neither the policy nor the CLI installs an automatic 90-day timer.
+2. Confirm the intended database and separate maintenance credentials privately.
+   Check for legal obligations or unresolved disputes affecting eligible records.
+   The current bulk command has **no per-record exception/hold support**. If a hold
+   applies or is uncertain, stop before apply and obtain a separately reviewed
+   approach that preserves the required records; do not run bulk anonymization.
+3. Run the count-only dry-run first, then review the cutoff, target and eligible
+   count. Investigate unexpected counts before proceeding:
+
+   ```powershell
+   npm run reservations:cleanup -- --before=$retentionCutoff
+   ```
+
+4. Confirm the authorized backup completed and request **separate explicit approval
+   before applying cleanup to production**, identifying the reviewed target, cutoff
+   and count. Policy approval alone is insufficient. Once approved, recheck the
+   dry-run if the target, cutoff or eligible set changed and obtain renewed approval
+   for material changes. Only then run:
+
+   ```powershell
+   npm run reservations:cleanup -- --before=$retentionCutoff --apply
+   ```
+
+   Record only the run date, cutoff, count and approval reference, without personal
+   data or credentials. A follow-up dry-run with the same cutoff should report zero
+   unless additional eligible rows appeared; review discrepancies.
+5. Manually manage reservation notification emails under the same retention policy,
+   including sender/recipient mailboxes, archives and trash, with the same legal or
+   dispute exceptions. Database anonymization does not remove these copies.
+6. Backups follow their **separate retention/rotation policy**; this command does
+   not edit existing backups. Confirm the backup owner, rotation and expiry policy
+   separately rather than claiming anonymization removes historical backup copies.
 
 After building, the opt-in `npm run test:retention-integration` requires
 `RETENTION_INTEGRATION_LOCAL=1` and explicitly configured local maintenance
@@ -736,10 +787,14 @@ verification is performed; deployment alone is not backend acceptance.
 
 ### Owner-dependent decisions and optional scope
 
-- [ ] A05: Approve retention duration, privacy wording, mailbox-copy handling,
-  maintenance ownership and reviewed manual cutoff/dry-run/apply workflow. Automatic
-  reservation retention needs separate approval; no cron is configured. Limiter
-  cleanup is opportunistic and separate from reservation-data retention.
+- [x] A05 decision/local implementation — 29 October: owner-approved 90-day policy,
+  Dutch privacy wording and monthly manual cutoff/dry-run/apply procedure are
+  documented. No automatic reservation cleanup or cron is configured; opportunistic
+  limiter cleanup is separate. This is not evidence of production cleanup or release.
+- [ ] A05 operations: designate the monthly operator and mailbox/backup owners;
+  perform reviewed maintenance with exception checks, backup and separate explicit
+  production-apply approval. Manage notification email copies manually and confirm
+  the separate backup retention/rotation policy.
 - [ ] A06: Confirm remaining menu prices/product wording, High Tea minimum-party/
   48-hour conditions and reservation policy/capacity expectations. Published High Tea
   copy is not enforced by reservation validation; do not invent a policy or prices.
@@ -748,5 +803,6 @@ verification is performed; deployment alone is not backend acceptance.
 - [ ] A12/A13: Obtain authentic replacement photography where appropriate; agree
   chatbot/CMS/capacity scope before implementation.
 
-No retention period, new hosting configuration or business policy is established by
-this checklist. Record live verification separately from local tests and owner reports.
+The approved A05 retention decision is documented above; this checklist authorizes
+no production apply or new hosting configuration. Record live verification separately
+from local tests and owner reports.

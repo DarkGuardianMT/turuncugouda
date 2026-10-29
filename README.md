@@ -5,8 +5,10 @@ It includes Dutch-language pages, a reservation-request backend and a protected
 administration workflow.
 
 **Status:** deployed on Hostinger as an Astro Node standalone app. Reservation
-submissions are requests awaiting Turuncu's confirmation. Some menu details, the retention period,
-browser acceptance and production safeguards still require review.
+submissions are requests awaiting Turuncu's confirmation. The owner-approved 90-day
+retention policy and monthly manual procedure are implemented locally; production
+maintenance remains pending. Some menu details, browser acceptance and production
+safeguards still require review.
 
 ## Implemented features
 
@@ -136,6 +138,6 @@ is claimed for the code or business assets.
 
 Before deploying the durable limiter, prepare migration 003, runtime grants
 and the shared RATE_LIMIT_SECRET. Complete HTTPS/proxy and trusted-host
-verification, database/TLS/backups, owner-approved retention and content review,
+verification, database/TLS/backups, manual retention operations and content review,
 and mobile/desktop browser acceptance. Publishing source and launching the live
 reservation service are separate decisions.

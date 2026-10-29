@@ -1,6 +1,6 @@
 # TuruncuGouda project context
 
-## CURRENT STATUS — 27 October 2026
+## CURRENT STATUS — 29 October 2026
 
 This section is the authoritative status summary. Dated checkpoints below record
 earlier decisions and evidence; their test counts and pending items apply to those
@@ -44,8 +44,26 @@ snapshots. Technical contracts, commands and operational procedures belong in
   Undici already required Node >=22.19.0 before this update; confirm the actual
   Hostinger Node 22 patch version before a release. These fixes are local only,
   awaiting explicit commit/push approval; production has not received them.
-- **Owner-dependent/deferred:** retention duration and maintenance/privacy workflow,
-  remaining prices/High Tea conditions and reservation policy require confirmation.
+- **A05 locally implemented — 29 October:** the owner approved retaining personal
+  reservation data for 90 days after the reservation date. Dutch privacy copy now
+  explains anonymizing name, phone, email and message, retaining non-personal
+  statistics, and exceptions for legal obligations or unresolved disputes. The
+  existing manual cleanup service/CLI were reviewed and remain unchanged: explicit
+  exclusive cutoff, count-only default, separate maintenance credentials and no PII
+  in logs. The monthly procedure calculates today's Amsterdam date minus 90 calendar
+  days, reviews the dry-run count and requires backup and separate explicit approval
+  before each production apply. Bulk cleanup has no per-record holds: stop if an
+  exception applies. Mail copies need manual retention management; backups follow
+  their separate retention/rotation policy. No automatic cleanup or cron was added.
+  No database was connected, no records changed and no release performed for A05.
+  Assign the monthly operator and confirm mailbox/backup ownership before operations;
+  production maintenance remains outstanding. See the linked manual procedure below.
+  Local verification under Node 24.11.0: 168/168 database-free tests, zero Astro
+  diagnostics, build, built privacy wording, SEO/HTTP checks, 25 relative Markdown
+  links/anchors and cutoff examples pass. HTTP checks required local loopback access
+  outside the restricted sandbox; no DB integration or cleanup command was run.
+- **Owner-dependent/deferred:** maintenance ownership, remaining prices/High Tea
+  conditions and reservation policy require confirmation.
   Guest emails, past-reservation admin view, capacity features, CMS and chatbot
   remain unimplemented; see the prioritized backlog below.
 
@@ -275,7 +293,8 @@ Migrations 001/002/003 cover reservations, manual anonymization and persistent r
 limiting. The shared database limiter protects reservation and login POSTs, fails
 closed, and stores HMAC-derived address identifiers rather than raw IPs. Internal
 SMTP notification follows storage; failure preserves the pending row and API success.
-Privacy/retention approval and production acceptance remain open as listed above.
+The owner-approved 90-day retention policy uses manual anonymization; operational
+execution and production acceptance remain open as listed above.
 
 See [local setup and API contracts](docs/DEVELOPMENT.md#local-reservation-backend-setup),
 [admin security](docs/DEVELOPMENT.md#local-reservation-admin-setup),
@@ -1043,7 +1062,7 @@ STATUS. “Production preview” in these early checks refers to a local built s
   chatbot, CMS, or deployment is included. Production rate limiting, host/HTTPS
   proxy verification, and privacy/retention policy remain launch requirements.
 
-## Prioritized backlog — 27 October 2026
+## Prioritized backlog — 29 October 2026
 
 Order reflects production acceptance and operational risk before optional features.
 Detailed procedures and verification status live in Development and operations.
@@ -1054,7 +1073,7 @@ Detailed procedures and verification status live in Development and operations.
 | A02 | Verify actual proxy `clientAddress`, untrusted-header handling and persistent/shared rate-limit behavior, including runtime grants and migration 003. |
 | A03 | Verified locally on 27 October: undici 8.12.3, zod 4.6.7, fast-uri 3.1.9; clean install, full/production-only audit (zero findings), 168 tests, Astro check, build and SEO pass under Node 22.19.0. Await release approval and confirm the actual Hostinger Node patch version; production is unchanged. Recheck advisories for future releases. |
 | A04 | Verify backups and a restore into an isolated test database, never over production or unrelated data. |
-| A05 | Obtain owner-approved retention duration, privacy wording and manual maintenance workflow, including mailbox copies. |
+| A05 | Owner-approved 90-day policy implemented locally on 29 October: Dutch privacy copy and monthly manual workflow; existing safe CLI unchanged. Assign operators, manage mailbox copies and confirm separate backup rotation. No production cleanup or release performed; each production apply needs separate explicit approval. |
 | A06 | Obtain owner confirmation of remaining menu prices/product wording, High Tea rules and reservation policy/capacity expectations. |
 | A07 | Maintain consistency across project guidance and operations docs; add minimal CI for existing checks when agreed. No CI workflow is currently configured. |
 | A08 | Add a past-reservations admin view if required; the current view covers today/future only. |
@@ -1068,8 +1087,9 @@ Detailed procedures and verification status live in Development and operations.
 
 - Owner confirmation of remaining prices/product wording and High Tea conditions;
   the published minimum-party/48-hour copy does not imply backend enforcement.
-- Reservation handling/contact policy, capacity expectations, retention duration,
-  privacy wording, mailbox maintenance and backup/recovery ownership.
+- Reservation handling/contact policy, capacity expectations, monthly retention
+  operator, mailbox maintenance and backup/recovery ownership. The 90-day retention
+  duration is approved; production maintenance has not been executed for A05.
 - Tested canonical redirect behavior and relevant production security headers.
 - Better photography and future design refinements; gallery and homepage structure
   are implemented, not awaiting an initial architecture decision.
