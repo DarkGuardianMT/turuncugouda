@@ -449,11 +449,13 @@ try {
   }
   const api = await fetch(`${base}/api/reservations`); assert.equal(api.status, 405);
   assert.equal(api.headers.get('cache-control'), 'no-store');
+  assert.equal(api.headers.get('x-content-type-options'), 'nosniff');
   console.log('PASS: built HTTP routes, actual 404 statuses/custom body, slash alias canonical, social image/sitemap/robots assets, private admin headers and API separation.');
 
   const localApi = await fetch(`${base}/api/reservations`, { method: 'POST', body: '{}',
     headers: { origin: base, 'content-type': 'application/json' } });
   assert.equal(localApi.status, 503);
+  assert.equal(localApi.headers.get('x-content-type-options'), 'nosniff');
   assert.equal((await localApi.json()).error.code, 'SERVICE_UNAVAILABLE');
   const localLogin = await fetch(`${base}/admin/auth/login`, { method: 'POST', redirect: 'manual',
     headers: { origin: base }, body: new URLSearchParams({ username: 'seo-runtime-test', password: adminPassword }) });

@@ -4,6 +4,30 @@ const fieldNames = ['reservationDate', 'reservationTime', 'guestCount', 'name', 
 type FieldName = typeof fieldNames[number];
 type Control = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
 const genericError = 'Er ging iets mis bij het versturen. Probeer het later opnieuw of neem telefonisch contact met ons op.';
+const unavailableError = 'Online reserveren is tijdelijk niet mogelijk. Probeer het later opnieuw of neem contact met ons op via WhatsApp of telefoon.';
+const responseError = 'We kunnen niet controleren of je aanvraag is ontvangen. Neem contact met ons op via WhatsApp of telefoon voordat je opnieuw verstuurt.';
+const networkError = `Er is een verbindingsprobleem. ${responseError}`;
+
+function rateLimitMessage(retryAfter: string | null): string {
+  const prefix = 'Er zijn te veel aanvragen gedaan.';
+  const fallback = `${prefix} Probeer het later opnieuw.`;
+  if (!retryAfter || retryAfter.length > 64) return fallback;
+  const value = retryAfter.trim();
+  let seconds: number;
+  if (/^\d+$/.test(value)) seconds = Number(value);
+  else {
+    // Accepteer alleen een volledige HTTP-datum; Date.parse alleen is te soepel.
+    if (!/^[A-Z][a-z]{2}, \d{2} [A-Z][a-z]{2} \d{4} \d{2}:\d{2}:\d{2} GMT$/.test(value)) return fallback;
+    const timestamp = Date.parse(value);
+    if (!Number.isFinite(timestamp) || new Date(timestamp).toUTCString() !== value) return fallback;
+    seconds = Math.ceil((timestamp - Date.now()) / 1000);
+  }
+  // De server gebruikt een venster van 15 minuten; onredelijke wachttijden worden niet overgenomen.
+  if (!Number.isSafeInteger(seconds) || seconds < 1 || seconds > 15 * 60) return fallback;
+  const amount = seconds < 60 ? seconds : Math.ceil(seconds / 60);
+  const unit = seconds < 60 ? (amount === 1 ? 'seconde' : 'seconden') : (amount === 1 ? 'minuut' : 'minuten');
+  return `${prefix} Probeer het over ${amount} ${unit} opnieuw.`;
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -87,7 +111,29 @@ export function initReservationForm(root: HTMLElement): void {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin', body: JSON.stringify(payload),
       });
-      const result: unknown = await response.json();
+      if (response.status === 429) {
+        showFormError(rateLimitMessage(response.headers.get('Retry-After')));
+        return;
+      }
+      if (response.status === 503) {
+        showFormError(unavailableError);
+        return;
+      }
+      if (response.status !== 201 && response.status !== 400) {
+        showFormError(genericError);
+        return;
+      }
+      let result: unknown;
+      try {
+        if (response.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase() !== 'application/json') {
+          showFormError(responseError);
+          return;
+        }
+        result = await response.json();
+      } catch {
+        showFormError(responseError);
+        return;
+      }
       if (response.status === 201 && isRecord(result) && result.success === true && result.status === 'pending'
         && /^[1-9]\d*$/.test(String(result.reservationId))) {
         root.querySelector<HTMLElement>('[data-summary-date]')!.textContent = new Intl.DateTimeFormat('nl-NL', {
@@ -108,9 +154,9 @@ export function initReservationForm(root: HTMLElement): void {
         showFormError('Controleer de gemarkeerde velden.', false);
         if (invalid.length) controls[invalid[0]].focus();
         else showFormError('Controleer je gegevens en probeer het opnieuw.');
-      } else showFormError(genericError);
+      } else showFormError(response.status === 201 ? responseError : genericError);
     } catch {
-      showFormError(genericError);
+      showFormError(networkError);
     } finally {
       submitting = false;
       submit.disabled = false;

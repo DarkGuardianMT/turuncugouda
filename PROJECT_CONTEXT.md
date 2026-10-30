@@ -62,6 +62,23 @@ snapshots. Technical contracts, commands and operational procedures belong in
   diagnostics, build, built privacy wording, SEO/HTTP checks, 25 relative Markdown
   links/anchors and cutoff examples pass. HTTP checks required local loopback access
   outside the restricted sandbox; no DB integration or cleanup command was run.
+- **A09/A10 local work and live read-only audit — 29 October:** the reservation form
+  now distinguishes 429 (bounded Retry-After advice), 503 (WhatsApp/phone), generic
+  server errors and uncertain network/malformed-response outcomes. Existing 201
+  success, 400 field errors, values, focus and submission locking are preserved.
+  Limiter rules, IP handling, DB writes and SMTP are unchanged. A10 GET checks found
+  working HTTP→HTTPS redirects with preserved path/query, but no apex→www redirect;
+  both HTTPS hosts return 200 without loops. Public canonicals/advertised sitemaps
+  are correct. Admin no-store/security headers are present; public nosniff/referrer/
+  framing headers and HSTS are absent. API GET is 405/no-store; its missing nosniff
+  is fixed locally on all JSON responses. Exact method-aware edge redirect and
+  header recommendations are documented; Hostinger changes require owner review.
+  No production form submission, login attempt, quota consumption, DB access,
+  hosting change, commit, push or deployment was performed for this work. Optional
+  improvements outside A09/A10 remain postponed.
+  Local verification: 171/171 Node tests, zero-diagnostic Astro check, build,
+  SEO/HTTP checks and 21 relative documentation links/anchors pass. Tests use
+  mocked services or an isolated loopback server without DB/SMTP traffic.
 - **Owner-dependent/deferred:** maintenance ownership, remaining prices/High Tea
   conditions and reservation policy require confirmation.
   Guest emails, past-reservation admin view, capacity features, CMS and chatbot
@@ -894,10 +911,13 @@ not establish successful production reservation/admin/SMTP end-to-end behavior.
 Database grants, actual proxy client IPs, quotas, networking/TLS and recovery still
 need operational verification. Keep runtime configuration private.
 
-The configured canonical origin is `https://www.turuncugouda.com`. A previous
-apex-to-www redirect attempt caused a loop. Do not retry blindly: inspect the
-actual Hostinger/proxy redirect chain and agree a tested change before applying it.
-Relevant security headers also need review. See the
+The configured canonical origin is `https://www.turuncugouda.com`. The 29 October
+A10 GET-only audit found working HTTP→HTTPS redirects and no loop, but apex still
+serves 200 instead of redirecting to www. Admin security/cache headers are present;
+public security-header gaps and the missing edge redirect need an owner-reviewed
+Hostinger change. A prior redirect attempt looped; do not apply generic proxy or
+`.htaccess` rules. Exact observations/recommendations are in the
+[A10 audit](docs/DEVELOPMENT.md#a10-read-only-live-audit--29-october-2026). See the
 [deployment reference](docs/DEVELOPMENT.md#deployment-and-release-operations) and
 [production acceptance checklist](docs/DEVELOPMENT.md#production-acceptance-checklist).
 
@@ -1077,8 +1097,8 @@ Detailed procedures and verification status live in Development and operations.
 | A06 | Obtain owner confirmation of remaining menu prices/product wording, High Tea rules and reservation policy/capacity expectations. |
 | A07 | Maintain consistency across project guidance and operations docs; add minimal CI for existing checks when agreed. No CI workflow is currently configured. |
 | A08 | Add a past-reservations admin view if required; the current view covers today/future only. |
-| A09 | Improve public 429/503 guidance and operational SMTP failure visibility; preserve successful pending records on mail failure. |
-| A10 | Review apex/www canonical redirect and relevant security headers. The previous redirect attempt looped; inspect real hosting/proxy behavior before changing it. |
+| A09 | Implemented locally on 29 October: Dutch 429/503 messages, bounded Retry-After advice and safe uncertain-response/network fallbacks; existing success, validation and form behavior preserved. SMTP unchanged; await review/release. |
+| A10 | Read-only live audit complete on 29 October; API nosniff fixed locally. HTTP→HTTPS/path/query/canonicals/sitemaps pass; apex→www and public security headers need owner-reviewed Hostinger changes and a repeat live audit. |
 | A11 | Consider optional customer confirmation/cancellation emails with agreed wording and delivery policy. |
 | A12 | Replace temporary photography with authentic assets where appropriate; complete accessibility and performance checks. Prior local visual checks do not replace full live acceptance. |
 | A13 | Consider optional chatbot, CMS and capacity features only after agreed requirements. |
@@ -1090,7 +1110,8 @@ Detailed procedures and verification status live in Development and operations.
 - Reservation handling/contact policy, capacity expectations, monthly retention
   operator, mailbox maintenance and backup/recovery ownership. The 90-day retention
   duration is approved; production maintenance has not been executed for A05.
-- Tested canonical redirect behavior and relevant production security headers.
+- Owner-reviewed Hostinger apex→www redirect and public security-header changes,
+  followed by live verification; the current A10 observations are documented.
 - Better photography and future design refinements; gallery and homepage structure
   are implemented, not awaiting an initial architecture decision.
 

@@ -152,21 +152,132 @@ test('authoritative server field errors are associated with controls and preserv
   assert.equal(view.controls.name.value, 'Example'); assert.equal(view.submit.disabled, false);
 });
 
-for (const [description, respond] of [
-  ['server failure', async () => Response.json({ error: 'private technical detail' }, { status: 500 })],
-  ['network failure', async () => { throw new Error('private technical detail'); }],
-  ['malformed JSON', async () => new Response('private technical detail', { status: 201 })],
-  ['unexpected response', async () => Response.json({ success: true }, { status: 201 })],
-  ['wrong success status', async () => Response.json({ success: true, reservationId: 1, status: 'confirmed' }, { status: 201 })],
-] as const) {
-  test(`${description} shows only a generic Dutch error and restores submission`, async (context) => {
-    context.mock.method(globalThis, 'fetch', respond);
-    const view = fixture(); await view.form.emit('submit');
-    assert.equal(view.formError.hidden, false); assert.equal(view.formError.focused, true);
-    assert.match(view.formError.textContent, /Er ging iets mis bij het versturen/);
-    assert.doesNotMatch(view.formError.textContent, /private technical detail/);
-    assert.equal(view.success.hidden, true); assert.equal(view.form.hidden, false);
-    assert.equal(view.controls.name.value, 'Example'); assert.equal(view.submit.disabled, false);
-    assert.equal(view.form.getAttribute('aria-busy'), null);
+function assertFailure(view: ReturnType<typeof fixture>) {
+  assert.equal(view.formError.hidden, false); assert.equal(view.formError.focused, true);
+  assert.doesNotMatch(view.formError.textContent, /private technical detail|<script>/);
+  assert.equal(view.success.hidden, true); assert.equal(view.form.hidden, false);
+  assert.equal(view.fieldset.disabled, false); assert.equal(view.submit.disabled, false);
+  assert.equal(view.submit.textContent, 'Verstuur aanvraag');
+  assert.equal(view.form.getAttribute('aria-busy'), null);
+  assert.deepEqual(Object.fromEntries(Object.entries(view.controls).map(([name, control]) => [name, control.value])), {
+    reservationDate: nextDate(day => day >= 2 && day <= 6), reservationTime: '13:30', guestCount: '4',
+    name: 'Example', phone: '+31612345678', email: '', message: '', contact_url: '',
   });
 }
+
+test('429 gives bounded retry advice even with an HTML body and never accepts a success payload', async (context) => {
+  let response: Response;
+  const fetch = context.mock.method(globalThis, 'fetch', async () => response);
+  for (const candidate of [
+    new Response('<html>private technical detail</html>', { status: 429, headers: { 'Retry-After': '61' } }),
+    Response.json({ success: true, reservationId: 1, status: 'pending' }, { status: 429, headers: { 'Retry-After': '61' } }),
+  ]) {
+    response = candidate;
+    const view = fixture(); await view.form.emit('submit');
+    assert.equal(view.formError.textContent, 'Er zijn te veel aanvragen gedaan. Probeer het over 2 minuten opnieuw.');
+    assertFailure(view);
+  }
+  assert.equal(fetch.mock.callCount(), 2);
+});
+
+test('Retry-After accepts seconds and strict future HTTP dates, rounding advice up without automatic retries', async (context) => {
+  const now = Date.parse('2026-10-29T12:00:00Z');
+  context.mock.method(Date, 'now', () => now);
+  let header = '';
+  const fetch = context.mock.method(globalThis, 'fetch', async () => new Response(null, { status: 429, headers: { 'Retry-After': header } }));
+  const cases = [
+    ['1', '1 seconde'], ['59', '59 seconden'], ['60', '1 minuut'], ['61', '2 minuten'], ['900', '15 minuten'], ['00060', '1 minuut'],
+    [new Date(now + 30_000).toUTCString(), '30 seconden'], [new Date(now + 61_000).toUTCString(), '2 minuten'],
+    [new Date(now + 900_000).toUTCString(), '15 minuten'],
+  ];
+  for (const [value, advice] of cases) {
+    header = value;
+    const view = fixture(); await view.form.emit('submit');
+    assert.equal(view.formError.textContent, `Er zijn te veel aanvragen gedaan. Probeer het over ${advice} opnieuw.`);
+    assertFailure(view);
+  }
+  assert.equal(fetch.mock.callCount(), cases.length);
+});
+
+test('Retry-After ignores missing, hostile, malformed, past and unreasonably long values', async (context) => {
+  const now = Date.parse('2026-10-29T12:00:00Z');
+  context.mock.method(Date, 'now', () => now);
+  let header: string | null = null;
+  context.mock.method(globalThis, 'fetch', async () => new Response(null, { status: 429, headers: header === null ? {} : { 'Retry-After': header } }));
+  for (const value of [null, '', '0', '-1', '+60', '1.5', '1e2', 'Infinity', 'NaN', '901', '9999999999999999999999',
+    '1'.repeat(65), '60, 120', '<script>private technical detail</script>', '2026-10-29',
+    new Date(now).toUTCString(), new Date(now - 1000).toUTCString(), new Date(now + 901_000).toUTCString(),
+    'Fri, 29 Oct 2026 12:01:00 GMT', 'Thu, 32 Oct 2026 12:01:00 GMT']) {
+    header = value;
+    const view = fixture(); await view.form.emit('submit');
+    assert.equal(view.formError.textContent, 'Er zijn te veel aanvragen gedaan. Probeer het later opnieuw.', String(value));
+    assertFailure(view);
+  }
+});
+
+test('503 offers WhatsApp or telephone contact for JSON and non-JSON responses', async (context) => {
+  let response: Response;
+  context.mock.method(globalThis, 'fetch', async () => response);
+  for (const candidate of [
+    new Response('<html>private technical detail</html>', { status: 503 }),
+    Response.json({ error: { message: 'private technical detail' } }, { status: 503 }),
+  ]) {
+    response = candidate;
+    const view = fixture(); await view.form.emit('submit');
+    assert.match(view.formError.textContent, /Online reserveren is tijdelijk niet mogelijk/);
+    assert.match(view.formError.textContent, /WhatsApp of telefoon/);
+    assertFailure(view);
+  }
+});
+
+test('500 and other unexpected statuses show a safe generic error regardless of response body', async (context) => {
+  let response: Response;
+  context.mock.method(globalThis, 'fetch', async () => response);
+  for (const status of [200, 403, 500, 502, 504]) {
+    response = new Response('<html>private technical detail</html>', { status });
+    const view = fixture(); await view.form.emit('submit');
+    assert.match(view.formError.textContent, /Er ging iets mis bij het versturen/);
+    assertFailure(view);
+  }
+});
+
+test('network failure warns that receipt is unknown and restores the form without showing success', async (context) => {
+  context.mock.method(globalThis, 'fetch', async () => { throw new Error('private technical detail'); });
+  const view = fixture(); await view.form.emit('submit');
+  assert.match(view.formError.textContent, /verbindingsprobleem/);
+  assert.match(view.formError.textContent, /niet controleren of je aanvraag is ontvangen/);
+  assert.match(view.formError.textContent, /contact.*voordat je opnieuw verstuurt/);
+  assertFailure(view);
+});
+
+test('malformed, non-JSON and invalid success responses never imply receipt or clear entered values', async (context) => {
+  let response: Response;
+  context.mock.method(globalThis, 'fetch', async () => response);
+  for (const candidate of [
+    new Response('private technical detail', { status: 201, headers: { 'Content-Type': 'application/json' } }),
+    new Response(null, { status: 400, headers: { 'Content-Type': 'application/json' } }),
+    new Response('<html>private technical detail</html>', { status: 201, headers: { 'Content-Type': 'text/html' } }),
+    new Response(JSON.stringify({ success: true, reservationId: 1, status: 'pending' }), { status: 201 }),
+    Response.json({ success: true }, { status: 201 }),
+    Response.json({ success: true, reservationId: 1, status: 'confirmed' }, { status: 201 }),
+  ]) {
+    response = candidate;
+    const view = fixture(); await view.form.emit('submit');
+    assert.match(view.formError.textContent, /niet controleren of je aanvraag is ontvangen/);
+    assert.match(view.formError.textContent, /contact.*voordat je opnieuw verstuurt/);
+    assertFailure(view);
+  }
+});
+
+test('all entered optional contact details and messages survive a failure and a manual retry can succeed', async (context) => {
+  let attempts = 0;
+  context.mock.method(globalThis, 'fetch', async () => ++attempts === 1 ? new Response(null, { status: 503 })
+    : Response.json({ success: true, reservationId: 123, status: 'pending' }, { status: 201 }));
+  const view = fixture();
+  view.controls.email.value = 'example@example.invalid'; view.controls.message.value = 'Kinderstoel';
+  await view.form.emit('submit');
+  assert.equal(view.controls.email.value, 'example@example.invalid'); assert.equal(view.controls.message.value, 'Kinderstoel');
+  await view.form.emit('submit');
+  assert.equal(attempts, 2); assert.equal(view.success.hidden, false); assert.equal(view.success.focused, true);
+  assert.equal(view.formError.hidden, true); assert.equal(view.controls.email.value, ''); assert.equal(view.controls.message.value, '');
+});

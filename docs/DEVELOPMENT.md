@@ -129,9 +129,10 @@ malformed JSON returns 400, unsupported content types 415, bodies above the 16 K
 technical limit 413, and other HTTP methods 405 with `Allow: POST`. Database/server
 reservation-insert failures return only a generic Dutch 500 message. Limiter failures
 return generic 503; quota exhaustion returns 429 with `Retry-After` (see below).
-Responses use `Cache-Control:
-no-store`; logs contain only configuration field names or safe error codes,
-never SQL or complete reservation payloads. No permissive CORS headers are added.
+JSON responses use `Cache-Control: no-store` and
+`X-Content-Type-Options: nosniff`. Logs contain only configuration field names or
+safe error codes, never SQL or complete reservation payloads. No permissive CORS
+headers are added.
 
 With a configured local database, run migrations twice to verify the second run
 skips them. Send the JSON above using your HTTP client, verify HTTP 201 and the
@@ -159,6 +160,19 @@ confirmation or email is sent to the guest. The separate admin workflow is descr
 below. Without JavaScript the form stays disabled to prevent accidental non-JSON
 submission; WhatsApp and phone remain available as contact alternatives.
 A concise purpose-of-use note is shown near Submit.
+
+A09 (29 October 2026, local only): HTTP 429 now explains that too many requests
+were made; a valid `Retry-After` gives Dutch retry advice. Only integer seconds or
+strict future HTTP dates yielding 1–900 seconds are accepted, with minute advice
+rounded up. Missing, invalid, past or excessive values use “Probeer het later
+opnieuw.” This is advice, without automatic retries or a new lockout timer. HTTP
+503 explains temporary unavailability and offers WhatsApp/phone via the existing
+contact options. HTTP 500/other unexpected statuses show a fixed generic error.
+Network failures and unreadable/invalid 201 responses explicitly leave receipt
+uncertain and ask the visitor to contact Turuncu before resubmitting. Only a valid
+JSON 201/pending response shows success; existing 400 field errors, input values
+on failure, alert focus and in-flight submission locking are preserved. No limiter,
+IP, database-write or SMTP behavior changes are included.
 
 Astro's `security.allowedDomains` permits exactly `turuncugouda.com` and
 `www.turuncugouda.com`, using HTTPS. `security.checkOrigin` stays enabled.
@@ -258,8 +272,8 @@ are rejected cheaply without storage work. Exhaustion returns HTTP 429:
 ```
 
 `Retry-After` contains seconds; responses remain `no-store`. No hash, count or
-internal database metadata is exposed. The existing form's generic-error path
-handles this without changing its UX.
+internal database metadata is exposed. The form displays bounded retry advice as
+described under [public reservation form](#public-reservation-form).
 
 Admin login keeps existing same-origin/bounded form parsing first. Each eligible
 login attempt consumes `admin_login` before expensive credential verification.
@@ -728,12 +742,75 @@ The two approved HTTPS hosts are configured in `security.allowedDomains`; real
 HTTPS Origin/client-IP handling through the trusted proxy remains unverified.
 Do not trust arbitrary forwarded headers.
 
-The preferred canonical origin is www. **A previous apex-to-www redirect attempt
-caused a loop.** Do not blindly repeat it or infer provider redirect syntax from
-canonical metadata. Inspect the real apex/www HTTP/HTTPS chain, TLS termination
-and existing Hostinger rules before proposing an approved, tested redirect change.
-Relevant security headers also need review against current public/admin behavior.
-This reference supplies no new DNS, redirect, header or hosting configuration.
+### A10 read-only live audit — 29 October 2026
+
+GET-only audit; TLS certificate verification remained enabled. No reservation POST,
+login attempt, production quota consumption, database access or hosting change was
+performed. The following are live observations, separate from the local changes:
+
+| Requested root URL | Observed chain and final URL |
+| --- | --- |
+| `http://turuncugouda.com/` | 301 → `https://turuncugouda.com/` → 200; apex remains apex |
+| `http://www.turuncugouda.com/` | 301 → `https://www.turuncugouda.com/` → 200 |
+| `https://turuncugouda.com/` | 200, no redirect to www |
+| `https://www.turuncugouda.com/` | 200, canonical destination |
+
+No redirect loop occurred. Both HTTP redirects preserved
+`/privacy?audit=a10&source=redirect` exactly, but apex-to-www is **missing**.
+All five public pages returned 200 with the correct HTTPS/www canonical, without
+query strings or trailing slashes except `/`. `/privacy/` also returned 200 with
+the `/privacy` canonical. `robots.txt` (200) advertises `sitemap-index.xml` (200),
+which points to `sitemap-0.xml` (200), containing exactly the five public www URLs.
+`/sitemap.xml` returns 404; it is not the advertised sitemap and needs no alias.
+
+Public HTML had `Cache-Control: public, max-age=0`, ETag/Last-Modified and CSP
+`upgrade-insecure-requests`, but **no** `X-Content-Type-Options`, `Referrer-Policy`,
+framing restriction or HSTS. The sampled hashed CSS asset had
+`Cache-Control: public, max-age=31536000, immutable`. Unauthenticated
+`/admin/reservations` returned 303 → `/admin/login` (200); both responses had
+`no-store`, `nosniff`, `Referrer-Policy: same-origin`, noindex and CSP
+`frame-ancestors 'none'; form-action 'self'; base-uri 'none'` plus the edge's
+upgrade policy. No admin login was submitted. API GET returned 405, `Allow: POST`
+and `no-store`, with nosniff absent live. The confirmed repository fix adds
+`X-Content-Type-Options: nosniff` to every reservation JSON response, without
+changing response bodies/statuses or business behavior. This fix is local only.
+
+**Hostinger-only recommendations, pending owner review:**
+
+- At the domain/CDN layer, add an exact source-host match for `turuncugouda.com`
+  on **GET/HEAD only**, returning permanent **308** to
+  `https://www.turuncugouda.com` + the original path + the original query string.
+  Do not match www or rewrite all paths to `/`. Preserve the existing working
+  www HTTP→HTTPS rule. Leave POST/action routing unchanged: cross-host redirects
+  can invalidate Origin/CSRF checks. Ask Hostinger to implement the method-aware
+  rule for this Node app if the panel cannot express it; no panel capability or
+  generic `.htaccess` syntax is assumed. A previous redirect attempt looped, so
+  review existing edge rules and repeat the four-host/path/query audit afterward.
+- Serve `X-Content-Type-Options: nosniff` on public files/responses. Use
+  `Referrer-Policy: strict-origin-when-cross-origin` for public pages, preserving
+  admin's `same-origin`. Add public `X-Frame-Options: DENY` and a CSP policy with
+  only `frame-ancestors 'none'`, preserving the existing upgrade policy and admin
+  directives. Do not add script/image/default-source restrictions without review.
+- HTTPS succeeded for both exact hosts. After owner review, start HTTPS-only
+  `Strict-Transport-Security: max-age=300` on both; assess a longer duration
+  separately. Do not add `includeSubDomains` or `preload` without assessing all
+  affected services. Preserve public revalidation, immutable hashed assets and
+  admin/API `no-store`; never introduce blanket CDN caching of private responses.
+
+Public pages are prerendered and served before runtime middleware. Inspection of
+the installed Node adapter shows that its static-header serialization currently
+handles Astro CSP only; adding runtime middleware headers alone would not cover
+these files. Astro config, canonical generation, admin headers and redirects are
+unchanged. No broad CSP, custom server or speculative hosting configuration was
+added. Redirect/header edge changes remain operational work, not a completed fix.
+
+Local A09/A10 verification: all 171 Node tests pass, Astro check has zero errors,
+warnings or hints, build and SEO/HTTP checks pass, and all 21 relative documentation
+links/anchors are valid. Form tests cover Retry-After bounds/dates/hostile values,
+429/503 JSON and HTML, generic failures, network/invalid responses, retained input,
+focus and manual retry. Route/built-HTTP tests verify API nosniff with unchanged
+success/error contracts. Tests use mocks or an isolated loopback server without
+DB access or SMTP traffic; no production POSTs or logins were performed.
 
 ## Production acceptance checklist
 
@@ -762,7 +839,7 @@ verification is performed; deployment alone is not backend acceptance.
 - [ ] A01: Verify successful HTTPS admin login, Secure cookies, session/CSRF/Origin
   protection, stale-update refusal, valid status actions and logout. Admin status
   changes send no guest email; test guest contact separately under the agreed policy.
-- [ ] A01/A09: Verify production SMTP configuration, provider acceptance and receipt
+- [ ] A01: Verify production SMTP configuration, provider acceptance and receipt
   in the intended inbox. Review safe failure visibility and that failed notification
   preserves the pending row/HTTP 201; current automated evidence for this is local.
 - [ ] A02: Verify actual production DB connectivity/networking/TLS, migration history
@@ -778,9 +855,13 @@ verification is performed; deployment alone is not backend acceptance.
   isolated test database using the procedure above. No production restore is verified.
 - [ ] A07: Keep guidance/status/operations docs consistent and agree minimal CI
   using existing checks; a CI workflow is not currently implemented.
-- [ ] A09: Improve specific 429/503 user guidance and safe SMTP failure visibility.
-- [ ] A10: Review apex/www canonical redirects and relevant security headers after
-  inspecting the actual proxy/hosting chain; the previous redirect attempt looped.
+- [x] A09 (local, 29 October): specific 429/503 guidance, bounded Retry-After advice
+  and safe network/malformed-response fallbacks implemented and tested. SMTP
+  behavior is unchanged; this task includes no live form acceptance or release.
+- [x] A10 audit (29 October): GET-only redirect, canonical, sitemap and security/cache
+  header observations recorded above; reservation API nosniff fixed locally.
+- [ ] A10 Hostinger work: owner-reviewed apex→www GET/HEAD redirect and public
+  security headers/HSTS staging; repeat live checks after any approved change.
 - [ ] A12: Complete live mobile/desktop accessibility and performance acceptance
   across navigation, gallery/menu dialogs, reservation, privacy and 404. Prior
   local responsive/keyboard reviews do not prove complete live acceptance.

@@ -99,6 +99,7 @@ async function assertSuccess(response: Response) {
   assert.equal(response.status, 201);
   assert.equal(response.headers.get('content-type'), 'application/json; charset=utf-8');
   assert.equal(response.headers.get('cache-control'), 'no-store');
+  assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
   assert.deepEqual(await response.json(), expectedSuccess);
 }
 
@@ -241,6 +242,7 @@ test('failed INSERT never attempts notification and retains the existing generic
   mocks.execute.mock.mockImplementation(async () => { throw new Error('Synthetic database failure'); });
   const response = await post();
   assert.equal(response.status, 500);
+  assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
   assert.deepEqual(await response.json(), { success: false, error: {
     code: 'INTERNAL_ERROR', message: 'Reserveren is tijdelijk niet mogelijk. Probeer het later opnieuw.',
   } });
@@ -251,6 +253,7 @@ test('invalid reservation never inserts or attempts a notification', async (cont
   const mocks = dependencies(context);
   const response = await post({ ...valid, name: '' });
   assert.equal(response.status, 400);
+  assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
   assert.equal(mocks.execute.mock.callCount(), 0);
   assert.equal(mocks.createTransport.mock.callCount(), 0);
 });
