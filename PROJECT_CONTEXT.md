@@ -239,14 +239,14 @@ all photos visible. The local homepage favorites reuse `PhotoGrid` and the same
 visible below the photos; category headings and repeated zoom labels are absent.
 Accessible button names and image metadata remain available to the lightbox.
 The section retains a screen-reader-only h2. The standalone gallery keeps h2
-captions, descriptions and its existing filters. The full gallery keeps 4:3
-frames for retained photos and uses square frames for new portrait products with per-photo
-positioning; wide plated shots fit in full to avoid cutting plate edges, without
-an added card background. Captions sit underneath, with
+captions, descriptions and its existing filters. All full-gallery thumbnails use
+the same 4:3 frame; homepage favorites retain their square frames. Every thumbnail
+fills its frame with `object-fit: cover`, centered by default with per-photo
+positioning for subjects. Captions align underneath, with
 one column on small mobiles, two from 576px, and three from 1024px.
 The full gallery opens with food, coffee, bakery, lunch, and atmosphere. Small
-per-image presentation hints preserve portrait headroom and the matcha straw,
-strawberries, tea handles and plates, without cutting source assets.
+per-image presentation hints focus the subjects within these consistent crops.
+Source assets and full-composition lightbox images remain unchanged.
 
 Both menu PNGs remain unchanged source/reference assets. The approved menu redesign
 uses two website-specific cropped sheets as its primary UI, with the existing structured

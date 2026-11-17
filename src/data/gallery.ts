@@ -27,23 +27,21 @@ export interface GalleryPhoto {
   description: string;
   category: typeof galleryCategories[number];
   objectPosition?: string;
-  objectFit?: 'contain';
-  squarePreview?: boolean;
 }
 
 export const photos = {
-  hero: { image: cappuccino, alt: 'Cappuccino met latte art, een koekje en een lepel op een witte schotel', title: 'Cappuccino', description: 'Een cappuccino met latte art en een koekje erbij.', category: 'Café', objectFit: 'contain' },
-  cheesecake: { image: cheesecake, alt: 'Een punt cheesecake met een goudbruine bovenkant op een roze bord', title: 'Cheesecake', description: 'Een punt cheesecake op een roze bord.', category: 'Zoet', objectPosition: '50% 55%', objectFit: 'contain' },
-  omeletToast: { image: omeletToast, alt: 'Een goudbruine tosti met omelet op een roze bord', title: 'Tosti omelet', description: 'Geroosterd brood met omelet ertussen.', category: 'Lunch', objectFit: 'contain' },
-  almondCake: { image: almondCake, alt: 'Een punt amandeltaart met geschaafde amandelen op een roze bord', title: 'Amandeltaart', description: 'Een punt taart met geschaafde amandelen.', category: 'Bakkerij', objectPosition: '50% 55%', objectFit: 'contain' },
+  hero: { image: cappuccino, alt: 'Cappuccino met latte art, een koekje en een lepel op een witte schotel', title: 'Cappuccino', description: 'Een cappuccino met latte art en een koekje erbij.', category: 'Café' },
+  cheesecake: { image: cheesecake, alt: 'Een punt cheesecake met een goudbruine bovenkant op een roze bord', title: 'Cheesecake', description: 'Een punt cheesecake op een roze bord.', category: 'Zoet', objectPosition: '50% 55%' },
+  omeletToast: { image: omeletToast, alt: 'Een goudbruine tosti met omelet op een roze bord', title: 'Tosti omelet', description: 'Geroosterd brood met omelet ertussen.', category: 'Lunch' },
+  almondCake: { image: almondCake, alt: 'Een punt amandeltaart met geschaafde amandelen op een roze bord', title: 'Amandeltaart', description: 'Een punt taart met geschaafde amandelen.', category: 'Bakkerij', objectPosition: '50% 55%' },
   avocadoSalad: { image: avocadoSalad, alt: 'Een salade met plakjes avocado, sla en kleurrijke groenten op een roze bord', title: 'Avocadosalade', description: 'Een kleurrijke salade met avocado.', category: 'Lunch' },
-  mintTea: { image: mintTea, alt: 'Glazen mok met muntthee en citroen, naast honing en een koekje', title: 'Muntthee', description: 'Muntthee met citroen, honing en een koekje erbij.', category: 'Café', objectPosition: '50% 65%', squarePreview: true },
+  mintTea: { image: mintTea, alt: 'Glazen mok met muntthee en citroen, naast honing en een koekje', title: 'Muntthee', description: 'Muntthee met citroen, honing en een koekje erbij.', category: 'Café', objectPosition: '50% 65%' },
   gozleme: { image: gozleme, alt: 'Een goudbruin gebakken gözleme op een rond houten bord', title: 'Gözleme', description: 'Een goudbruin gebakken gözleme op een houten bord.', category: 'Lunch' },
-  strawberryMatcha: { image: strawberryMatcha, alt: 'IJskoude matcha met groene, witte en rode lagen, een glazen rietje en aardbeien', title: 'Aardbeienmatcha', description: 'Matcha met ijs en aardbei, met de gekleurde lagen in beeld.', category: 'Café', objectPosition: '50% 60%', squarePreview: true },
-  brownie: { image: brownie, alt: 'Een chocoladebrownie op een grijs bord met chocoladedruppels ernaast', title: 'Brownie', description: 'Een brownie met chocoladedruppels op en naast het bord.', category: 'Zoet', objectPosition: '50% 55%', squarePreview: true },
-  gingerTea: { image: gingerTea, alt: 'Glazen mok met gemberthee, een koekje en een schijfje sinaasappel ernaast', title: 'Gemberthee', description: 'Gemberthee met een koekje en sinaasappel erbij.', category: 'Café', objectPosition: '50% 60%', squarePreview: true },
-  frenchToast: { image: frenchToast, alt: 'French toast met aardbeien, slagroom en poedersuiker op een roze bord', title: 'French toast', description: 'French toast met aardbeien, slagroom en poedersuiker.', category: 'Lunch', objectPosition: '50% 60%', squarePreview: true },
-  cookies: { image: cookies, alt: 'Een stapel chocoladekoekjes op een houten bord met stukjes chocolade ernaast', title: 'Cookies', description: 'Chocoladekoekjes, gestapeld op een houten bord.', category: 'Bakkerij', objectPosition: '50% 65%', squarePreview: true },
+  strawberryMatcha: { image: strawberryMatcha, alt: 'IJskoude matcha met groene, witte en rode lagen, een glazen rietje en aardbeien', title: 'Aardbeienmatcha', description: 'Matcha met ijs en aardbei, met de gekleurde lagen in beeld.', category: 'Café', objectPosition: '50% 60%' },
+  brownie: { image: brownie, alt: 'Een chocoladebrownie op een grijs bord met chocoladedruppels ernaast', title: 'Brownie', description: 'Een brownie met chocoladedruppels op en naast het bord.', category: 'Zoet', objectPosition: '50% 55%' },
+  gingerTea: { image: gingerTea, alt: 'Glazen mok met gemberthee, een koekje en een schijfje sinaasappel ernaast', title: 'Gemberthee', description: 'Gemberthee met een koekje en sinaasappel erbij.', category: 'Café', objectPosition: '50% 60%' },
+  frenchToast: { image: frenchToast, alt: 'French toast met aardbeien, slagroom en poedersuiker op een roze bord', title: 'French toast', description: 'French toast met aardbeien, slagroom en poedersuiker.', category: 'Lunch', objectPosition: '50% 60%' },
+  cookies: { image: cookies, alt: 'Een stapel chocoladekoekjes op een houten bord met stukjes chocolade ernaast', title: 'Cookies', description: 'Chocoladekoekjes, gestapeld op een houten bord.', category: 'Bakkerij', objectPosition: '50% 65%' },
   borekCoffee: { image: borekCoffee, alt: 'Börek en koffie op een houten tafel', title: 'Börek en koffie', description: 'Een hartig hapje met een kop koffie erbij.', category: 'Lunch' },
   lunch: { image: menemen, alt: 'Menemen met brood en een schaaltje boter', title: 'Menemen', description: 'Een kijkje op tafel tijdens de lunch.', category: 'Lunch' },
   atmosphere: { image: counterTulips, alt: 'De toonbank van Turuncu met tulpen en gebak', title: 'Onze toonbank', description: 'Tulpen en gebak bij binnenkomst.', category: 'Sfeer' },

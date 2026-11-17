@@ -36,13 +36,13 @@ capped at 1600px width, quality 85, and loaded only on demand. The existing
 `object-fit: contain` lightbox behavior preserves the full image.
 
 Hero retains its 4:3 cover frame, eager/high-priority loading and original layout.
-Favorites use square frames; the gallery keeps 4:3 landscape frames and square
-frames for new portrait products. Retained photos keep their existing 4:3 frames.
-Per-photo `objectPosition` preserves portrait
-details; broad plated compositions use `objectFit: contain` on a transparent
-card surface so frames do not cut plates. This shows the full rectangular photo
-with spare space; it does not extend or replace its background. Short favorite
-names remain visible without opening the lightbox.
+Favorites retain square frames; every gallery thumbnail uses the same 4:3 frame.
+All thumbnails fill their frame with `object-fit: cover`, centered by default.
+Per-photo `objectPosition` focuses the subject within the crop. Mixed portrait
+frame ratios and per-photo contain/transparent-space overrides are removed.
+Captions align below the images. Source photographs and full-composition
+lightbox images remain unchanged. Short favorite names remain visible without
+opening the lightbox.
 
 The active gallery has 18 unique photos and the original five categories.
 Retained previous assets: `borek-coffee`, `menemen`, `ig-00`, `counter-tulips`,
