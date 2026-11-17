@@ -12,7 +12,6 @@ import ContactVisit from '../components/ContactVisit.astro';
 import HighTeaHighlight from '../components/HighTeaHighlight.astro';
 import { businessStructuredData } from '../lib/seo';
 if (!Astro.site) throw new Error('Missing canonical site configuration.');
-const favoritePhotos = favorites.flatMap(({ photos: groupPhotos }) => groupPhotos);
 ---
 
 <BaseLayout title={`${site.name} | ${site.city}`} description="Turuncu Café en Bakkerij in Winkelcentrum Bloemendaal in Gouda. Geniet van koffie, Turkse bakkerijproducten, ontbijt, lunch en meer." canonicalPath="/" structuredData={businessStructuredData(Astro.site)}>
@@ -40,7 +39,7 @@ const favoritePhotos = favorites.flatMap(({ photos: groupPhotos }) => groupPhoto
     <section id="favorieten" class="favorites-preview section-surface" aria-labelledby="favorites-title">
       <div class="container">
         <h2 id="favorites-title" class="sr-only">Onze favorieten</h2>
-        <PhotoGrid photos={favoritePhotos} interactive favorites id="favorites-grid" />
+        <PhotoGrid photos={favorites} interactive favorites id="favorites-grid" />
         <div class="favorites-action"><a class="button button-primary" href="/galerij">Ontdek de galerij <span aria-hidden="true">↗</span></a></div>
         <GalleryLightbox />
       </div>
@@ -78,17 +77,16 @@ const favoritePhotos = favorites.flatMap(({ photos: groupPhotos }) => groupPhoto
     grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-1);
   }
   .favorites-preview :global(.gallery-trigger) {
-    aspect-ratio: 8 / 5; min-height: 48px;
+    aspect-ratio: 1; min-height: 48px;
     border-radius: calc(var(--radius-small) / 2);
   }
   .favorites-action { display: flex; justify-content: center; margin-top: var(--space-1); }
   .favorites-action .button { min-height: 44px; padding: 0.5rem 1rem; font-size: var(--text-small); }
-  @media (min-width: 22.5rem) {
-    .favorites-preview :global(.favorites-grid) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  }
+  .favorites-preview :global(figcaption) { padding-top: var(--space-1); }
+  .favorites-preview :global(.favorite-name) { font-size: var(--text-small); font-weight: 600; }
   @media (min-width: 48rem) {
     .favorites-preview { padding-block: var(--space-4); }
-    .favorites-preview :global(.favorites-grid) { gap: calc(var(--space-3) / 2); }
+    .favorites-preview :global(.favorites-grid) { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: calc(var(--space-3) / 2); }
   }
   @media (min-width: 64rem) {
     .favorites-preview :global(.favorites-grid) { gap: var(--space-2); }

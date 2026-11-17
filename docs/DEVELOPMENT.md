@@ -694,7 +694,7 @@ metadata does not configure DNS, redirects, HTTPS or trusted proxy hosts.
 The shared public layout requires a title/description and accepts `canonicalPath`,
 an optional `socialImage` (src/alt/optional dimensions), optional `robots` and trusted
 `structuredData`. Page descriptions are Dutch and unique. Open Graph/Twitter cards
-use a built JPEG generated from the real börek-and-coffee photo; normal page-image
+use a built JPEG generated from the real cappuccino photo; normal page-image
 optimization is unchanged. Only the homepage emits CafeOrCoffeeShop JSON-LD, using
 verified address, phone, social links and Tuesday–Saturday 10:00–16:30 hours.
 

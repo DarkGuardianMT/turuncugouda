@@ -16,11 +16,13 @@ const largeImages = interactive ? await Promise.all(photos.map(({ image }) =>
 ---
 
 <div id={interactive ? id : undefined} class:list={['gallery-grid', { 'gallery-full': interactive, 'gallery-preview': preview, 'favorites-grid': favorites }]}>
-  {photos.map(({ image, alt, objectPosition, title, description, category }, index) => (
+  {photos.map(({ image, alt, objectPosition, objectFit, squarePreview, title, description, category }, index) => (
     <figure class="gallery-card" data-gallery-category={interactive ? category : undefined}>
       {interactive ? (
         <Fragment>
           <button class="gallery-trigger" type="button" aria-label={`Vergroot foto: ${title}`}
+            style={{ aspectRatio: !favorites && squarePreview ? '1' : undefined,
+              background: objectFit === 'contain' ? 'transparent' : undefined }}
             aria-haspopup="dialog" aria-controls="gallery-lightbox" disabled
             data-gallery-image={largeImages[index].src} data-gallery-alt={alt}
             data-gallery-title={title} data-gallery-description={description}
@@ -29,13 +31,16 @@ const largeImages = interactive ? await Promise.all(photos.map(({ image }) =>
             <Image src={image} alt={alt} width={Math.min(640, image.width)}
               widths={[320, 480, 640, 960].filter((width) => width <= image.width)}
               sizes={favorites
-                ? '(min-width: 1248px) 384px, (min-width: 1024px) calc((100vw - 96px) / 3), (min-width: 768px) calc((100vw - 88px) / 3), (min-width: 360px) calc((100vw - 64px) / 3), calc((100vw - 56px) / 2)'
+                ? '(min-width: 1248px) 384px, (min-width: 1024px) calc((100vw - 96px) / 3), (min-width: 768px) calc((100vw - 88px) / 3), calc((100vw - 56px) / 2)'
                 : '(min-width: 1248px) 379px, (min-width: 1024px) calc((100vw - 112px) / 3), (min-width: 768px) calc((100vw - 88px) / 2), (min-width: 576px) calc((100vw - 72px) / 2), calc(100vw - 48px)' }
-              style={objectPosition ? { objectPosition } : undefined}
+              style={{ objectPosition, objectFit }}
               loading="lazy" decoding="async" />
             {!favorites && <span class="gallery-zoom" aria-hidden="true">Vergroot ↗</span>}
           </button>
-          {!favorites && <figcaption><h2>{title}</h2><p>{description}</p></figcaption>}
+          <figcaption>{favorites
+            ? <span class="favorite-name">{title}</span>
+            : <Fragment><h2>{title}</h2><p>{description}</p></Fragment>}
+          </figcaption>
         </Fragment>
       ) : (
         <Image src={image} alt={alt} width={Math.min(640, image.width)}

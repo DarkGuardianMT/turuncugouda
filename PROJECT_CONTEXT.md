@@ -130,7 +130,7 @@ Homepage `/` (redesign approved for publication on 23 October 2026):
 - Header/navigation
 - Hero
 - Product-name ticker in warm dark brown with cream text and orange ornaments
-- Compact nine-image favorites preview; the section label is screen-reader-only
+- Six-image favorites preview with short Dutch product names; the section label is screen-reader-only
 - High Tea highlight with approved temporary AI image
 - Over ons
 - Contact, reservations guidance, and opening information
@@ -211,14 +211,19 @@ and high priority; other photos are lazy loaded. Generated widths are capped at
 source resolution. The general gallery uses real supplied photography. The approved
 High Tea highlight alone uses an owner-supplied temporary AI image.
 
-Main assignments: `borek-coffee.webp` for the contained 4:3 hero, `latte-art.webp`
-for Café, `ig-08.webp` for Bakkerij, `menemen.webp` for Lunch, and
-`counter-tulips.webp` for Over ons. The local homepage redesign displays nine
-favorites at every width in a single compact mosaic. `src/data/favorites.ts`
-reuses existing gallery metadata and adds a generic coffee label for `ig-07.webp`;
-its thumbnail framing avoids the letterbox edge without modifying the source.
-`src/data/gallery.ts` continues to share metadata with the reusable `PhotoGrid`
-and the unchanged 13-photo gallery.
+Photography update (17 November 2026, local only, awaiting release approval):
+`products/cappuccino.webp` replaces the hero; its 4:3 presentation and responsive,
+eager loading remain. Six favorites reuse the shared photo metadata, ordered
+Gözleme, Cheesecake, Aardbeienmatcha, Tosti omelet, Avocadosalade and French toast.
+Square cards use two columns below 768px and three from 768px, with visible short
+Dutch names. `src/data/gallery.ts` contains 18 active photos: all 12 new product
+shots and the retained börek/coffee, menemen, sesame bread, counter, interior and
+counter portrait. Superseded originals remain in `src/assets/photos/`.
+New imported WebP assets preserve the source compositions, natural colors and a
+maximum 2400px edge. Original supplied files remain in the owner's photo archive;
+see [photography mapping and preparation](docs/PHOTOGRAPHY.md).
+`counter-tulips.webp` remains the Over ons image. The High Tea component, image
+and conditions are unchanged; the new set contains no suitable service photo.
 Gallery items have short Dutch titles, descriptions, and category metadata from
 the stable set Café, Bakkerij, Lunch, Zoet, and Sfeer. Uncertain products retain
 generic labels; specific varieties still need owner confirmation. `/galerij` offers
@@ -230,16 +235,18 @@ color, wrap on small screens, and announce the result count to assistive technol
 Filtering is instant and client-side; it neither changes the URL/history nor
 persists across refreshes. The filter bar is hidden without JavaScript, leaving
 all photos visible. The local homepage favorites reuse `PhotoGrid` and the same
-`GalleryLightbox` component, with nine photos and one grid. Category headings,
-captions, item names and zoom labels are absent from the visible homepage grid;
-accessible button names and image metadata remain available to the lightbox.
-The section retains a screen-reader-only h2. The standalone gallery's defaults
-remain unchanged, with h2 captions, descriptions and its existing filters.
-The full gallery uses consistent 4:3 photo crops with captions underneath and
+`GalleryLightbox` component, with six photos and one grid. Short product names are
+visible below the photos; category headings and repeated zoom labels are absent.
+Accessible button names and image metadata remain available to the lightbox.
+The section retains a screen-reader-only h2. The standalone gallery keeps h2
+captions, descriptions and its existing filters. The full gallery keeps 4:3
+frames for retained photos and uses square frames for new portrait products with per-photo
+positioning; wide plated shots fit in full to avoid cutting plate edges, without
+an added card background. Captions sit underneath, with
 one column on small mobiles, two from 576px, and three from 1024px.
 The full gallery opens with food, coffee, bakery, lunch, and atmosphere. Small
-per-image presentation hints bring the latte cup into focus and preserve space
-above the portrait subject's head, without changing source assets.
+per-image presentation hints preserve portrait headroom and the matcha straw,
+strawberries, tea handles and plates, without cutting source assets.
 
 Both menu PNGs remain unchanged source/reference assets. The approved menu redesign
 uses two website-specific cropped sheets as its primary UI, with the existing structured

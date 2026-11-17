@@ -72,7 +72,7 @@ for (const [path, [title, file]] of routes) {
   for (const prefix of ['og', 'twitter']) { assert.equal(meta(head, `${prefix}:title`), title); assert.equal(meta(head, `${prefix}:description`), description); }
   assert.equal(meta(head, 'twitter:card'), 'summary_large_image');
   const image = meta(head, 'og:image'); assert.equal(new URL(image).origin, origin); assert.equal(meta(head, 'twitter:image'), image);
-  assert.ok(meta(head, 'og:image:alt').includes('Börek')); imageUrls.add(image);
+  assert.ok(meta(head, 'og:image:alt').includes('Cappuccino')); imageUrls.add(image);
   assert.ok(Number(meta(head, 'og:image:width')) > 0 && Number(meta(head, 'og:image:height')) > 0);
   assert.ok(!metas(head).some((entry) => entry.name === 'twitter:site'));
   assert.ok(!/localhost|127\.0\.0\.1|@fs/.test(head));
@@ -321,22 +321,34 @@ const favoritesMarkup = homepage.slice(favoritesStart, highTeaStart);
 const favoritesGrid = favoritesMarkup.slice(0, favoritesMarkup.indexOf('<dialog'));
 assert.match(favoritesGrid, /<h2\b[^>]*class="sr-only"[^>]*>Onze favorieten<\/h2>/);
 assert.equal((favoritesGrid.match(/<h[34]\b/g) ?? []).length, 0, 'No visible category or item headings');
-assert.equal((favoritesGrid.match(/<figcaption\b/g) ?? []).length, 0, 'No photo captions in the compact grid');
+assert.equal((favoritesGrid.match(/<figcaption\b/g) ?? []).length, 6, 'Each favorite has a visible short product name');
+const expectedFavorites = ['Gözleme', 'Cheesecake', 'Aardbeienmatcha', 'Tosti omelet', 'Avocadosalade', 'French toast'];
+assert.deepEqual([...favoritesGrid.matchAll(/class="favorite-name"[^>]*>([^<]+)/g)].map((match) => decode(match[1])), expectedFavorites);
+assert.deepEqual([...favoritesGrid.matchAll(/data-gallery-title="([^"]+)"/g)].map((match) => decode(match[1])), expectedFavorites);
 assert.ok(!favoritesGrid.includes('class="gallery-zoom"'), 'No repeated zoom labels over the images');
-assert.equal((favoritesGrid.match(/class="gallery-grid /g) ?? []).length, 1, 'One compact nine-photo grid');
+assert.equal((favoritesGrid.match(/class="gallery-grid /g) ?? []).length, 1, 'One six-photo grid');
 const favoriteImages = [...favoritesMarkup.matchAll(/data-gallery-image="([^"]+)"/g)].map((match) => match[1]);
-assert.equal(favoriteImages.length, 9); assert.equal(new Set(favoriteImages).size, 9);
-assert.equal((favoritesGrid.match(/data-gallery-title="[^"]+"/g) ?? []).length, 9, 'Image titles remain available to the lightbox');
-assert.equal((favoritesGrid.match(/data-gallery-description="[^"]+"/g) ?? []).length, 9, 'Descriptions remain available to the lightbox');
+assert.equal(favoriteImages.length, 6); assert.equal(new Set(favoriteImages).size, 6);
+assert.equal((favoritesGrid.match(/data-gallery-title="[^"]+"/g) ?? []).length, 6, 'Image titles remain available to the lightbox');
+assert.equal((favoritesGrid.match(/data-gallery-description="[^"]+"/g) ?? []).length, 6, 'Descriptions remain available to the lightbox');
 assert.equal((homepage.match(/id="gallery-lightbox"/g) ?? []).length, 1);
 const homepageIds = [...homepage.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]);
 assert.equal(new Set(homepageIds).size, homepageIds.length, 'Unique IDs across favorite grids and shared lightbox');
 assert.match(favoritesMarkup, /<a\b[^>]*class="button button-primary"[^>]*href="\/galerij"[^>]*>Ontdek de galerij/);
 assert.ok(!favoritesGrid.includes('href="/reserveren"'), 'Gallery preview has no reservation CTA');
 assert.ok(!homepage.includes('Een kijkje bij Turuncu') && !homepage.includes('class="highlights-grid"'));
-assert.equal((htmlByPath.get('/galerij').match(/data-gallery-image=/g) ?? []).length, 13);
-assert.equal((htmlByPath.get('/galerij').match(/<figcaption\b/g) ?? []).length, 13, 'Standalone gallery keeps its captions');
-assert.equal((htmlByPath.get('/galerij').match(/class="gallery-zoom"/g) ?? []).length, 13, 'Standalone gallery keeps its zoom labels');
+const galleryPage = htmlByPath.get('/galerij');
+assert.equal((galleryPage.match(/data-gallery-image=/g) ?? []).length, 18);
+assert.equal((galleryPage.match(/<figcaption\b/g) ?? []).length, 18, 'Standalone gallery keeps its captions');
+assert.equal((galleryPage.match(/class="gallery-zoom"/g) ?? []).length, 18, 'Standalone gallery keeps its zoom labels');
+const galleryImages = [...galleryPage.matchAll(/data-gallery-image="([^"]+)"/g)].map((match) => match[1]);
+assert.equal(new Set(galleryImages).size, 18, 'No duplicate gallery photos');
+for (const stem of ['borek-coffee', 'menemen', 'ig-00', 'counter-tulips', 'interior-wide', 'ig-04']) {
+  assert.ok(galleryImages.some((url) => url.includes(`/${stem}.`)), `Retained authentic photo: ${stem}`);
+}
+for (const stem of ['latte-art', 'ig-08', 'ig-03', 'ig-01', 'cake-display', 'ig-06', 'borek-display']) {
+  assert.ok(!galleryImages.some((url) => url.includes(`/${stem}.`)), `Superseded photo excluded: ${stem}`);
+}
 
 const robots = await readFile(`${root}/robots.txt`, 'utf8');
 assert.ok(robots.includes('User-agent: *') && robots.includes('Disallow: /admin/') && robots.includes('Disallow: /api/'));
